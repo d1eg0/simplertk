@@ -1,5 +1,5 @@
-#include "simplertk.h"
-#include "uart_dma.h"
+#include "../simplertk.h"
+#include "../uart_dma.h"
 
 
  /*	Constants	*/

@@ -175,8 +175,8 @@ void srtInitKernel(int idlestack){
 		
 	/*Initialize the UART Port 1 to communicate with the PC via RS232 */
 	//UART1_Init(115200, 0x00 | 0x00, 0x00);
-	ADC1_init();
-	ADC2_init();
+	//ADC1_init();
+	//ADC2_init();
 	PWM_config();
 	
 		/* set pin (AN10/RB10)-->(CON6/Pin28) drive state low */
