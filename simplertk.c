@@ -38,7 +38,6 @@ void DisableInterrupts(){
 unsigned int sptemp;
 void __attribute__((__interrupt__)) _T1Interrupt(void)
 {
-LATBbits.LATB10=1;
 	unsigned char running, oldrunning;
 	struct task *t;
 	unsigned char i;
@@ -107,7 +106,6 @@ LATBbits.LATB10=1;
 		asm("MOV _sptemp,W14");
 	}
 	IFS0bits.T1IF = 0;	/* Clear Timer interrupt flag */
-	LATBbits.LATB10=0;
 }
 
 void __attribute__((__interrupt__)) _T2Interrupt(void)
@@ -177,7 +175,6 @@ void srtInitKernel(int idlestack){
 	//UART1_Init(115200, 0x00 | 0x00, 0x00);
 	//ADC1_init();
 	//ADC2_init();
-	PWM_config();
 	
 		/* set pin (AN10/RB10)-->(CON6/Pin28) drive state low */
 	LATBbits.LATB10 = 0;

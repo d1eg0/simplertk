@@ -108,26 +108,28 @@ void ADC2_init(void)
  ******************************************************************************/
 void PWM_config(void)
 {
-//	TRISE = 0x0000;			// Port E as output
+	LATDbits.LATD8=0; //Estas dos lineas configuran una salida digital 
+	TRISDbits.TRISD8=0;//del puerto D numero 8, pin7 del CON5 
 
-	PTCONbits.PTMOD = 0;	/*PWM Time Base Mode Select bits
-							  11 =PWM time base operates in a Continuous Up/Down Count mode with interrupts for double PWM updates
-							  10 =PWM time base operates in a Continuous Up/Down Count mode
-							  01 =PWM time base operates in Single Pulse mode
-							  00 =PWM time base operates in a Free-Running mode*/
+	TRISE = 0x0000;		// Puerto E como salida.
 
-//	OVDCON = 0x0000;		// Override Control Register
-
-	PTPER = 0x3FFF;			// PWM Time Base Period Value bits, PWM period selection
-	PWMCON1 = 0x0111;		// PWM Control Register 1
-
+	PTCONbits.PTMOD = 0;	// Modo base de tiempos. (2 -> up&down)
+	OVDCON = 0x0000;		// Deshabilitar todas las salidas PWM
+	
+	PTPER = 0x3fff;		// Periodo para frecuencia deseada
+	//200uS=0x0fff
+	//150uS=0x0bff
+	//25uS=0x01ff
+	//14uS(aprox)=0x00ff
+	PWMCON1 = 0x0111;		// Habilita salida 1 del PWM y modo independiente 
 	PWMCON2bits.IUE = 0;	// Immediate update period enable
-	PWMCON2bits.UDIS = 0;	/* PWM Update Disable bit
-							   1 = Updates from Duty Cycle and Period Buffer registers are disabled
-							   0 = Updates from Duty Cycle and Period Buffer registers are enabled*/
+	PWMCON2bits.UDIS = 0;	// Actualizaciones de ciclo trabajo y periodo habilitadas
 
-	OVDCON = 0xff00;		// Override Control Register
-	PDC1 = 0x2550;			// Initial PWM value
-
-	PTCONbits.PTEN = 1;		// Enable PWM.
+	OVDCON = 0xff00;		// Salidas PWM controladas por el módulo PWM
+	PDC1 = 0x000;//5F3B;		// Ciclo de trabajo del PWM.  (0x5F3B -> 2.5v)
+	 
+	PTCONbits.PTEN = 1;		// Empieza PWM.
+	
+	//Para tocar el PWM:        PDC1 = 0x1000;//2500;//0x2600; Establece el ciclo de trabajo
+ 	//							LATDbits.LATD8 ^= 1;//Cambia el sentido de giro
 }
