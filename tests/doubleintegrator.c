@@ -66,18 +66,7 @@ void taskreference(void *args){
 			reference=-0.5;
 			LATBbits.LATB14 = 0;//Orange led switch off
 		}
-		//reference=0.5;
-		/*if (d2->sem==0){
-			//LATBbits.LATB14 = 1;
-			//LATDbits.LATD0=1;
-			//LATFbits.LATF1=1;
-			d2->sem=1;
-		}else{
-			//LATBbits.LATB14 = 0;
-			//LATDbits.LATD0=0;
-			//LATFbits.LATF1=0;
-			d2->sem=0;
-		}*/
+		
 		d2->t+= SECONDS2TICKS(1);
 		d2->d+= SECONDS2TICKS(1);
 		srtSleepUntil(d2->t, d2->d);
