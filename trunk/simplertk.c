@@ -20,22 +20,24 @@ struct kernel {
   struct task tasks[MAXNBRTASKS+1]; // +1 for the idle task
   unsigned char semaphores[MAXNBRSEMAPHORES]; // counters for semaphores
   unsigned int *memptr; // pointer to free memory
-  unsigned long cycles;  // number of major cycles since system start
+  unsigned int cycles;  // number of major cycles since system start
   unsigned long nextHit; // next kernel wake-up time
 } kernel;
 
+static int current_cpu_ipl;
 
 void EnableInterrupts(){
-	EnableIntT1;
-	EnableIntT2;
+	RESTORE_CPU_IPL(current_cpu_ipl); 
+	__asm__ volatile("disi #0x0000"); /* enable interrupts */ 
 }
 
 void DisableInterrupts(){
-	DisableIntT1;
-	DisableIntT2;
+	SET_AND_SAVE_CPU_IPL(current_cpu_ipl, 7);  /* disable level 7 interrupts */ 
+	__asm__ volatile("disi #0x3FFF"); /* disable interrupts */ 
+  
 }
 
-unsigned int sptemp;
+static unsigned int sptemp;
 void __attribute__((__interrupt__)) _T1Interrupt(void)
 {
 	unsigned char running, oldrunning;
@@ -110,6 +112,7 @@ void __attribute__((__interrupt__)) _T1Interrupt(void)
 
 void __attribute__((__interrupt__)) _T2Interrupt(void)
 {
+	LATBbits.LATB10 ^=1;
 	WriteTimer2(0); 	/* Clear timer2 */
 	++kernel.cycles;	/* increment timer cycle */
 	IFS0bits.T2IF = 0;  /* Clear Timer interrupt flag */	
@@ -118,7 +121,7 @@ void __attribute__((__interrupt__)) _T2Interrupt(void)
 void srtInitKernel(int idlestack){
 	UART1_DMA_Init();
 
-// Clock setup for 40MIPS 
+	// Clock setup for 40MIPS 
 	CLKDIVbits.DOZEN   = 0;
 	CLKDIVbits.PLLPRE  = 0;
 	CLKDIVbits.PLLPOST = 0;
@@ -138,7 +141,7 @@ void srtInitKernel(int idlestack){
 	kernel.tasks[0].release = 0x00000000;
 	
 	
-	/* Enable Timer1 Interrupt and Priority to "1" */
+	/* Enable Timer1 Interrupt and Priority to "7" */
 	ConfigIntTimer1(T1_INT_PRIOR_7 & T1_INT_ON);
 	WriteTimer1(0);
 
@@ -166,17 +169,12 @@ void srtInitKernel(int idlestack){
 	
 	ConfigIntTimer2(T2_INT_PRIOR_1 & T2_INT_ON);
 	WriteTimer2(0);
-	//match_value = 0x9C40;
 	OpenTimer2(T2_ON & T2_GATE_OFF & T2_IDLE_STOP &
 		timer_prescaler2  &
 		T2_SOURCE_INT, TIMER_VALUE);
 		
-	/*Initialize the UART Port 1 to communicate with the PC via RS232 */
-	//UART1_Init(115200, 0x00 | 0x00, 0x00);
-	//ADC1_init();
-	//ADC2_init();
 	
-		/* set pin (AN10/RB10)-->(CON6/Pin28) drive state low */
+	/* set pin (AN10/RB10)-->(CON6/Pin28) drive state low */
 	LATBbits.LATB10 = 0;
 	/* set pin (AN10/RB10)-->(CON6/Pin28) as output */
 	TRISBbits.TRISB10 = 0;
@@ -282,28 +280,46 @@ unsigned long srtCurrentTime(void) {
 	return (kernel.cycles * TIMER_VALUE) + ReadTimer1();
 }
 
+static void restartCycle(void){
+	unsigned char i;
+	DisableInterrupts(); // turn off interrupts
+	for (i=1; i <= kernel.nbrOfTasks; i++) {
+		if(kernel.tasks[i].state!=TERMINATED)
+	}
+	EnableInterrupts();
+}
+
 void srtSleepUntil(unsigned long release, unsigned long deadline) {
 
 	struct task *t;
-
+	int temp_res;
 	t = &kernel.tasks[kernel.running];
 
 	DisableInterrupts(); // turn off interrupts
 
 	t->state = TIMEQ;
-	t->release = release;
-	t->deadline = deadline;
+	
+	temp_res=t->release+release;
+	if(SR&&0x0004)restartCycle();
+	t->release+= release;
+	
+	
+	temp_res=t->deadline+deadline;
+	if(SR&&0x0004)restartCycle();
+	t->deadline+= deadline;
+	
+	
 	EnableInterrupts();
 	_T1Interrupt();	// call interrupt handler to schedule
 }
 
 
 unsigned long srtGetRelease(void) {
-  return kernel.tasks[kernel.running].release;
+	return kernel.tasks[kernel.running].release;
 }
 
 unsigned long srtGetDeadline(void) {
-  return kernel.tasks[kernel.running].deadline;
+	return kernel.tasks[kernel.running].deadline;
 }
 
 void srtTerminate(void) {
