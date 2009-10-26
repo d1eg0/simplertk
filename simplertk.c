@@ -7,7 +7,7 @@ _FGS(GCP_OFF);// Disable Code Protection
 
 /************** KERNEL DATA STRUCTURES *******************/
 struct task {
-  unsigned int fp;		// Frame pointer
+  unsigned int fp;		// Stack pointer
   unsigned long release;
   unsigned long deadline;
   unsigned char state;     // 0=terminated, 1=readyQ, 2=timeQ
@@ -20,7 +20,8 @@ struct kernel {
   struct task tasks[MAXNBRTASKS+1]; // +1 for the idle task
   unsigned char semaphores[MAXNBRSEMAPHORES]; // counters for semaphores
   unsigned int *memptr; // pointer to free memory
-  unsigned int cycles;  // number of major cycles since system start
+  unsigned long cycles;  // number of major cycles since system start
+
   unsigned long nextHit; // next kernel wake-up time
 } kernel;
 
@@ -34,7 +35,6 @@ void EnableInterrupts(){
 void DisableInterrupts(){
 	SET_AND_SAVE_CPU_IPL(current_cpu_ipl, 7);  /* disable level 7 interrupts */ 
 	__asm__ volatile("disi #0x3FFF"); /* disable interrupts */ 
-  
 }
 
 static unsigned int sptemp;
@@ -47,8 +47,11 @@ void __attribute__((__interrupt__)) _T1Interrupt(void)
 	unsigned long nextHit;
 	long timeleft;
 	
-	if(ReadTimer1()>=TIMER_VALUE) WriteTimer1(0); 
-
+		
+	if ((IFS0bits.T1IF == 1) && (PR1==TIMER_VALUE)){
+		kernel.cycles++;
+	}
+	
 	nextHit = 0x7FFFFFFF;
 	oldrunning = kernel.running;
 	running = 0;
@@ -88,7 +91,7 @@ void __attribute__((__interrupt__)) _T1Interrupt(void)
 	kernel.nextHit = nextHit;  
 
 	now = (kernel.cycles * TIMER_VALUE) + ReadTimer1();
-	timeleft = (long)nextHit - (long)now;
+	timeleft = nextHit - now;
 	if (timeleft < 4) {
 		timeleft = 4;
 	}
@@ -108,18 +111,18 @@ void __attribute__((__interrupt__)) _T1Interrupt(void)
 		asm("MOV _sptemp,W14");
 	}
 	IFS0bits.T1IF = 0;	/* Clear Timer interrupt flag */
+	//EnableInterrupts();
 }
 
 void __attribute__((__interrupt__)) _T2Interrupt(void)
 {
-	LATBbits.LATB10 ^=1;
 	WriteTimer2(0); 	/* Clear timer2 */
 	++kernel.cycles;	/* increment timer cycle */
 	IFS0bits.T2IF = 0;  /* Clear Timer interrupt flag */	
 }
 
 void srtInitKernel(int idlestack){
-	UART1_DMA_Init();
+	//UART1_DMA_Init();
 
 	// Clock setup for 40MIPS 
 	CLKDIVbits.DOZEN   = 0;
@@ -134,6 +137,7 @@ void srtInitKernel(int idlestack){
 	kernel.nbrOfTasks= 0;
 	kernel.running = 0;
 	kernel.cycles = 0x00000000;
+
 	kernel.nextHit = 0x7FFFFFFF;
 	
 	kernel.tasks[0].fp=kernel.memptr;
@@ -167,12 +171,12 @@ void srtInitKernel(int idlestack){
 		timer_prescaler1 & T1_SYNC_EXT_OFF &
 		T1_SOURCE_INT, TIMER_VALUE);
 	
-	ConfigIntTimer2(T2_INT_PRIOR_1 & T2_INT_ON);
+	/*ConfigIntTimer2(T2_INT_PRIOR_7 & T2_INT_ON);
 	WriteTimer2(0);
 	OpenTimer2(T2_ON & T2_GATE_OFF & T2_IDLE_STOP &
 		timer_prescaler2  &
-		T2_SOURCE_INT, TIMER_VALUE);
-		
+		T2_SOURCE_INT, 0x5000);*/
+
 	
 	/* set pin (AN10/RB10)-->(CON6/Pin28) drive state low */
 	LATBbits.LATB10 = 0;
@@ -282,33 +286,45 @@ unsigned long srtCurrentTime(void) {
 
 static void restartCycle(void){
 	unsigned char i;
+	unsigned long min_time=0xFFFFFFFF;
+	unsigned char task_ref=0;
 	DisableInterrupts(); // turn off interrupts
+	
 	for (i=1; i <= kernel.nbrOfTasks; i++) {
-		if(kernel.tasks[i].state!=TERMINATED)
+		if((kernel.tasks[i].state!=TERMINATED) & (kernel.tasks[i].release<min_time) ){
+			task_ref=i;
+			min_time=kernel.tasks[i].release;
+		}
 	}
+	
+	kernel.tasks[task_ref].release=0;
+	kernel.tasks[task_ref].deadline-=min_time;
+	
+	for (i=1; i <= kernel.nbrOfTasks; i++) {
+		if ((kernel.tasks[i].state!=TERMINATED) & (i!=task_ref)){
+			kernel.tasks[i].release-=min_time;
+			kernel.tasks[i].deadline-=min_time;
+		}
+	}
+	kernel.cycles=0;
 	EnableInterrupts();
 }
 
 void srtSleepUntil(unsigned long release, unsigned long deadline) {
 
 	struct task *t;
-	int temp_res;
+	unsigned long temp_res;
 	t = &kernel.tasks[kernel.running];
 
 	DisableInterrupts(); // turn off interrupts
 
 	t->state = TIMEQ;
 	
-	temp_res=t->release+release;
-	if(SR&&0x0004)restartCycle();
-	t->release+= release;
-	
-	
-	temp_res=t->deadline+deadline;
-	if(SR&&0x0004)restartCycle();
+	temp_res=t->deadline+deadline; //worst overflow case test
+	if(SR&0x0004)restartCycle(); //status register overflow bit -> restart life counters
 	t->deadline+= deadline;
-	
-	
+	t->release+= release;
+
 	EnableInterrupts();
 	_T1Interrupt();	// call interrupt handler to schedule
 }

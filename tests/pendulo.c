@@ -221,22 +221,16 @@ void PulseEncoder_config()
 struct data datos,datos1;
 int main(void)
 {
-	//PulseEncoder_config();//Importantisima la F-->1111
+	PulseEncoder_config();//Importantisima la F-->1111
 
-	//QuadratureEncoder_config();
-	//PWM_config();
+	QuadratureEncoder_config();
+	PWM_config();
 	
 	srtInitKernel(80);
-	//srtCreateTask(TaskPWM, 100, SECONDS2TICKS(0.01), SECONDS2TICKS(0.01), &datos);
-	//srtCreateTask(TaskSend, 100, SECONDS2TICKS(1), SECONDS2TICKS(0.1), &datos1);
+	srtCreateTask(TaskPWM, 100, SECONDS2TICKS(0.01), SECONDS2TICKS(0.01), &datos);
+	srtCreateTask(TaskSend, 100, SECONDS2TICKS(1), SECONDS2TICKS(0.1), &datos1);
 	
 
-	unsigned int a,b;
-	a=0x7FFF;
-	b=a+1;
-	if(!SR&&0x0004){
-		b=a+1;
-	}
 	/* Program a cyclic alarm which will fire after an offset of 10 counter 
 	* ticks, and after that periodically every 500 ticks */
 	/*SetRelAlarm(AlarmQuadratureEncoder, 500, 500);
