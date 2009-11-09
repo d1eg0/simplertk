@@ -114,12 +114,7 @@ void __attribute__((__interrupt__)) _T1Interrupt(void)
 	//EnableInterrupts();
 }
 
-void __attribute__((__interrupt__)) _T2Interrupt(void)
-{
-	WriteTimer2(0); 	/* Clear timer2 */
-	++kernel.cycles;	/* increment timer cycle */
-	IFS0bits.T2IF = 0;  /* Clear Timer interrupt flag */	
-}
+
 
 void srtInitKernel(int idlestack){
 	//UART1_DMA_Init();

@@ -56,8 +56,6 @@ void EnableInterrupts();
 void __attribute__((__interrupt__)) _T1Interrupt(void);
 
 
-void __attribute__((__interrupt__)) _T2Interrupt(void);
-
 /***************** API *****************/
 /*! 
 \brief Initialize the kernel 
