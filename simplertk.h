@@ -12,7 +12,6 @@
 
 
 
-
 #define MAXNBRTASKS 6
 #define MAXNBRSEMAPHORES 6
 
@@ -51,9 +50,10 @@ void DisableInterrupts();
 // Enable all interrupts
 void EnableInterrupts();
 
+ char scheduler();
 /**************** CLOCK INTERRUPT HANDLER *****************/
+ void __attribute__((__interrupt__,__auto_psv__)) _T1Interrupt(void);
 
-void __attribute__((__interrupt__)) _T1Interrupt(void);
 
 
 /***************** API *****************/
