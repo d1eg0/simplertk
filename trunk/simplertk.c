@@ -20,7 +20,7 @@ struct kernel {
   struct task tasks[MAXNBRTASKS+1]; // +1 for the idle task
   unsigned char semaphores[MAXNBRSEMAPHORES]; // counters for semaphores
   unsigned int *memptr; // pointer to free memory
-  unsigned long cycles;  // number of major cycles since system start
+  volatile unsigned long cycles;  // number of major cycles since system start
 
   unsigned long nextHit; // next kernel wake-up time
 } kernel;
@@ -37,9 +37,9 @@ void DisableInterrupts(){
 	__asm__ volatile("disi #0x3FFF"); /* disable interrupts */ 
 }
 
-static unsigned int sptemp;
-void __attribute__((__interrupt__)) _T1Interrupt(void)
-{
+volatile unsigned int sptemp;
+
+ char scheduler(){
 	unsigned char running, oldrunning;
 	struct task *t;
 	unsigned char i;
@@ -47,7 +47,8 @@ void __attribute__((__interrupt__)) _T1Interrupt(void)
 	unsigned long nextHit;
 	long timeleft;
 	
-		
+
+	//add cycle if timer value
 	if ((IFS0bits.T1IF == 1) && (PR1==TIMER_VALUE)){
 		kernel.cycles++;
 	}
@@ -56,10 +57,12 @@ void __attribute__((__interrupt__)) _T1Interrupt(void)
 	oldrunning = kernel.running;
 	running = 0;
  
-	// Read clock
+	//Read clock
 	now = (kernel.cycles * TIMER_VALUE) + ReadTimer1();
-
-	// Release tasks from TimeQ and determine new running task
+	//asm("bset.b 0x02cb,#6");
+	
+	
+	//Release tasks from TimeQ and determine new running task
 
 	for (i=1; i <= kernel.nbrOfTasks; i++) {
 		t = &kernel.tasks[i];
@@ -78,14 +81,15 @@ void __attribute__((__interrupt__)) _T1Interrupt(void)
 	}
 	
 	if (running != oldrunning) { // perform context switch?
-		// store old context
+		//store old context
 		t = &kernel.tasks[oldrunning];
-		asm("MOV W14,_sptemp");
+		//asm("MOV W14,_sptemp");
 		t->fp=sptemp;
 	
 		kernel.running = running;
-		// load new context
-		t = &kernel.tasks[running];
+		
+	}else{
+		running=0X7F; // no context switch
 	}
 	
 	kernel.nextHit = nextHit;  
@@ -104,21 +108,94 @@ void __attribute__((__interrupt__)) _T1Interrupt(void)
 		PR1 = 4;
 	}
 	
+	return running;
+}
 
-	if (running != oldrunning) {	
-		// load new context
-		sptemp=t->fp;
-		asm("MOV _sptemp,W14");
-	}
-	IFS0bits.T1IF = 0;	/* Clear Timer interrupt flag */
-	//EnableInterrupts();
+void dispatch(void){
+	struct task *t;
+	t = &kernel.tasks[kernel.running];
+	sptemp=t->fp;
+	//asm("MOV _sptemp,W14");
 }
 
 
+// void __attribute__((__interrupt__,__auto_psv__)) _T1Interrupt(void)
+// {
+	// unsigned char running, oldrunning;
+	// struct task *t;
+	// unsigned char i;
+	// unsigned long now;
+	// unsigned long nextHit;
+	// long timeleft;
+	
+		
+	//add cycle if timer value
+	// if ((IFS0bits.T1IF == 1) && (PR1==TIMER_VALUE)){
+		// kernel.cycles++;
+	// }
+	
+	// nextHit = 0x7FFFFFFF;
+	// oldrunning = kernel.running;
+	// running = 0;
+ 
+	//Read clock
+	// now = (kernel.cycles * TIMER_VALUE) + ReadTimer1();
+
+	//Release tasks from TimeQ and determine new running task
+
+	// for (i=1; i <= kernel.nbrOfTasks; i++) {
+		// t = &kernel.tasks[i];
+		// if (t->state == TIMEQ) {
+			// if (t->release <= now) {
+				// t->state = READYQ;
+			// } else if (t->release < nextHit) {
+				// nextHit = t->release;
+			// }
+		// }
+		// if (t->state == READYQ) {
+			// if (t->deadline < kernel.tasks[running].deadline) {
+				// running = i;
+			// }
+		// }
+	// }
+	
+	// if (running != oldrunning) { // perform context switch?
+		//store old context
+		// t = &kernel.tasks[oldrunning];
+		// asm("MOV W14,_sptemp");
+		// t->fp=sptemp;
+	
+		// kernel.running = running;
+		//load new context
+		// t = &kernel.tasks[running];
+	// }
+	
+	// kernel.nextHit = nextHit;  
+
+	// now = (kernel.cycles * TIMER_VALUE) + ReadTimer1();
+	// timeleft = nextHit - now;
+	// if (timeleft < 4) {
+		// timeleft = 4;
+	// }
+
+	// if ((unsigned long)ReadTimer1() + timeleft <(TIMER_VALUE+1)) {
+		// PR1 = ReadTimer1() + timeleft;
+	// } else if (ReadTimer1() < (TIMER_VALUE+1) - 4) {
+		// PR1 = TIMER_VALUE;
+	// } else {
+		// PR1 = 4;
+	// }
+	
+
+	// if (running != oldrunning) {	
+		//load new context
+		// sptemp=t->fp;
+		// asm("MOV _sptemp,W14");
+	// }
+	// IFS0bits.T1IF = 0;	/* Clear Timer interrupt flag */
+// }
 
 void srtInitKernel(int idlestack){
-	//UART1_DMA_Init();
-
 	// Clock setup for 40MIPS 
 	CLKDIVbits.DOZEN   = 0;
 	CLKDIVbits.PLLPRE  = 0;
@@ -128,7 +205,7 @@ void srtInitKernel(int idlestack){
 	/* Wait for PLL to lock */
 	while(OSCCONbits.LOCK!=1);
 	
-	kernel.memptr= (void*)(SPLIM - idlestack);
+	kernel.memptr= (void*)(SPLIM - idlestack );
 	kernel.nbrOfTasks= 0;
 	kernel.running = 0;
 	kernel.cycles = 0x00000000;
@@ -144,33 +221,24 @@ void srtInitKernel(int idlestack){
 	ConfigIntTimer1(T1_INT_PRIOR_7 & T1_INT_ON);
 	WriteTimer1(0);
 
-	unsigned int timer_prescaler1,timer_prescaler2;
+	unsigned int timer_prescaler1;
 	switch (PRESCALER){
 		case 1:
 			timer_prescaler1=T1_PS_1_1;
-			timer_prescaler2=T2_PS_1_1;
 			break;
 		case 8:
 			timer_prescaler1=T1_PS_1_8;
-			timer_prescaler2=T2_PS_1_8;
 			break;
 		case 64:
 			timer_prescaler1=T1_PS_1_64;
-			timer_prescaler2=T2_PS_1_64;
 			break;
 		case 256:
 			timer_prescaler1=T1_PS_1_256;
-			timer_prescaler2=T2_PS_1_256;
 	}
 	OpenTimer1(T1_ON & T1_GATE_OFF & T1_IDLE_STOP &
 		timer_prescaler1 & T1_SYNC_EXT_OFF &
 		T1_SOURCE_INT, TIMER_VALUE);
 	
-	/*ConfigIntTimer2(T2_INT_PRIOR_7 & T2_INT_ON);
-	WriteTimer2(0);
-	OpenTimer2(T2_ON & T2_GATE_OFF & T2_IDLE_STOP &
-		timer_prescaler2  &
-		T2_SOURCE_INT, 0x5000);*/
 
 	
 	/* set pin (AN10/RB10)-->(CON6/Pin28) drive state low */
@@ -180,6 +248,7 @@ void srtInitKernel(int idlestack){
 
 }
 	
+extern void _T1Interrupt(void);
 
 void srtCreateTask(void (*fun)(void*), unsigned int stacksize, unsigned long release, unsigned long deadline, void* args){
 	unsigned int *sp;
@@ -190,27 +259,46 @@ void srtCreateTask(void (*fun)(void*), unsigned int stacksize, unsigned long rel
 
 	++kernel.nbrOfTasks;
 
-	sp = kernel.memptr;
+	
 	kernel.memptr -= stacksize;  // decrease free mem ptr
+	sp = kernel.memptr;
 	
+	
+	
+	
+	*sp++ = fun;    // store PC
+	*sp++ = 0x0000; // IPL3
+	
+	*sp++=0x0000; //SPLIM
+	*sp++=0x0000; //SR
+
+	*sp++ = kernel.memptr+24; 	// w14
 	// initialize stack
-	for(i=0;i<11;i++)
-		*sp-- = 0x0000; // w14, psvpag, w9-w1
+	for(i=0;i<12;i++)
+		*sp++ = 0x0000; // w13-w2
+
+	*sp++ = args; 	// wo
+	*sp++ = 0x0000; // w1
+
 	
-	*sp-- = args; 	// wo
-	*sp-- = 0x0000; // rcount
-	*sp-- = 0x0000; // IPL3
-	*sp-- = fun;    // store PC
+	*sp++=0x0000; //RCOUNT
+	*sp++=0x0000; //TBLPAG
+	*sp++=0x0000; //CORCON
+	*sp++=0x0000; //PSVPAG
+
+
+	
+	
 
 
 	t = &kernel.tasks[kernel.nbrOfTasks];
-	t->fp=sp+16;	// store stack pointer
+	t->fp=sp;	// store stack pointer
 	t->release = release;
 	t->deadline = deadline;
 	t->state = TIMEQ;
   
-	//_T1Interrupt(); // call interrupt handler to schedule
 	EnableInterrupts();
+	_T1Interrupt(); // call interrupt handler to schedule
 
 }
 
@@ -335,11 +423,11 @@ unsigned long srtGetDeadline(void) {
 
 void srtTerminate(void) {
 
-  DisableInterrupts();
+	DisableInterrupts();
 
-  kernel.tasks[kernel.running].state = TERMINATED;
+	kernel.tasks[kernel.running].state = TERMINATED;
 	EnableInterrupts();
-  _T1Interrupt(); // call interrupt handler to schedule
+	_T1Interrupt(); // call interrupt handler to schedule
 }
 
 

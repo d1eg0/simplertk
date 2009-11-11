@@ -22,6 +22,7 @@ struct data* d4;
 
 
 
+
 void taskreference(void *args){
 	d2=(struct data*)args;
 	
