@@ -14,14 +14,54 @@ struct data{
 	unsigned int sem;
 	unsigned long d;
 	unsigned long t;
+	unsigned int r;
 };
 struct data* d;
 struct data* d2;
 struct data* d3;
 struct data* d4;
 
+void taskprueba(void *args){
+	d3=(struct data*)args;
+	
+	d3->t = srtGetRelease();
+	d3->d = srtGetDeadline();
+	while(1){
+		//LATBbits.LATB10 ^=1;
 
+		if (d3->r == 1)
+		{
+			d3->r=2;
+			//LATBbits.LATB14 = 1;//Orange led switch on
+		}else{
+			d3->r=1;
+			//LATBbits.LATB14 = 0;//Orange led switch off
+		}
+		
+		srtSleepUntil(SECONDS2TICKS(0.09), SECONDS2TICKS(0.09));
+	}
+}
 
+void taskprueba4(void *args){
+	d4=(struct data*)args;
+	
+	d4->t = srtGetRelease();
+	d4->d = srtGetDeadline();
+	while(1){
+		LATBbits.LATB10 ^=1;
+
+		if (d4->r == 1)
+		{
+			d4->r=2;
+			LATBbits.LATB14 = 1;//Orange led switch on
+		}else{
+			d4->r=1;
+			LATBbits.LATB14 = 0;//Orange led switch off
+		}
+		
+		srtSleepUntil(SECONDS2TICKS(0.07), SECONDS2TICKS(0.07));
+	}
+}
 
 void taskreference(void *args){
 	d2=(struct data*)args;
@@ -29,15 +69,15 @@ void taskreference(void *args){
 	d2->t = srtGetRelease();
 	d2->d = srtGetDeadline();
 	while(1){
-		LATBbits.LATB10 ^=1;
+		//LATBbits.LATB10 ^=1;
 
 		if (reference == 1.0)
 		{
 			reference=2.0;
-			LATBbits.LATB14 = 1;//Orange led switch on
+			//LATBbits.LATB14 = 1;//Orange led switch on
 		}else{
 			reference=1.0;
-			LATBbits.LATB14 = 0;//Orange led switch off
+			//LATBbits.LATB14 = 0;//Orange led switch off
 		}
 		//reference=0.5;
 		/*if (d2->sem==0){
@@ -125,7 +165,7 @@ void taskreference(void *args){
 }*/
 
 
-struct data datos,datos2,datos3;
+struct data datos,datos2,datos3,datos4;
 int main(void)
 {
 
@@ -134,7 +174,11 @@ int main(void)
 	datos.sem=0;
 	datos2.sem=0;
 	datos3.sem=0;
-
+	datos3.r=2;
+	
+	datos4.sem=0;
+	datos4.r=2;
+	
 
 	//pruebaargs(&datos);
 	
@@ -158,6 +202,9 @@ int main(void)
 	
 	srtInitKernel(80);
 	srtCreateTask(taskreference, 100, SECONDS2TICKS(0.05), SECONDS2TICKS(0.05), &datos);
+	srtCreateTask(taskprueba, 100, SECONDS2TICKS(0.09), SECONDS2TICKS(0.09), &datos3);
+	srtCreateTask(taskprueba4, 100, SECONDS2TICKS(0.07), SECONDS2TICKS(0.07), &datos4);
+
 	//trtCreateTask(taskcontroller, 100, SECONDS2TICKS(0.050), SECONDS2TICKS(0.050), &datos2);
 	//trtCreateTask(tasksend, 100, SECONDS2TICKS(0.1), SECONDS2TICKS(0.01), &datos3);
 	// trtCreateTask(prueba4, 100, SECONDS2TICKS(0.03), SECONDS2TICKS(0.05), &datos4);
