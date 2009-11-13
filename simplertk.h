@@ -40,6 +40,7 @@ PRESCALER	PERIOD		TIMER VALUE
 
 #define RAMEND 0x7FFF
 
+#define NO_CONTEXT_SWITCH 0X7F //No context switch
 /************** KERNEL DATA STRUCTURES *******************/
 struct task;
 
