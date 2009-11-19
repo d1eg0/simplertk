@@ -103,7 +103,7 @@ unsigned long srtCurrentTime(void);
 \param release the release time of the task
 \param deadline the deadline time of the task
 */
-void srtSleepUntil(unsigned long release, unsigned long deadline);
+void srtSleep(unsigned long release, unsigned long deadline);
 
 /** Get the release time (ticks) of the running task */
 unsigned long srtGetRelease(void);
