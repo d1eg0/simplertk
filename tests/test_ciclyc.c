@@ -20,8 +20,31 @@ struct data* d;
 struct data* d2;
 struct data* d3;
 struct data* d4;
+struct data* d5;
 
-void taskprueba(void *args){
+
+void taskprueba2(void *args){
+	d2=(struct data*)args;
+	
+	d2->t = srtGetRelease();
+	d2->d = srtGetDeadline();
+	while(1){
+		//LATBbits.LATB10 ^=1;
+
+		if (d2->r == 1)
+		{
+			d2->r=2;
+			//LATBbits.LATB14 = 1;//Orange led switch on
+		}else{
+			d2->r=1;
+			//LATBbits.LATB14 = 0;//Orange led switch off
+		}
+		
+		srtSleep(SECONDS2TICKS(0.06), SECONDS2TICKS(0.06));
+	}
+}
+
+void taskprueba3(void *args){
 	d3=(struct data*)args;
 	
 	d3->t = srtGetRelease();
@@ -38,7 +61,7 @@ void taskprueba(void *args){
 			//LATBbits.LATB14 = 0;//Orange led switch off
 		}
 		
-		srtSleepUntil(SECONDS2TICKS(0.09), SECONDS2TICKS(0.09));
+		srtSleep(SECONDS2TICKS(0.09), SECONDS2TICKS(0.09));
 	}
 }
 
@@ -48,26 +71,47 @@ void taskprueba4(void *args){
 	d4->t = srtGetRelease();
 	d4->d = srtGetDeadline();
 	while(1){
-		LATBbits.LATB10 ^=1;
+		//LATBbits.LATB10 ^=1;
 
 		if (d4->r == 1)
 		{
 			d4->r=2;
-			LATBbits.LATB14 = 1;//Orange led switch on
+			//LATBbits.LATB14 = 1;//Orange led switch on
 		}else{
 			d4->r=1;
+			//LATBbits.LATB14 = 0;//Orange led switch off
+		}
+		
+		srtSleep(SECONDS2TICKS(0.07), SECONDS2TICKS(0.07));
+	}
+}
+
+void taskprueba5(void *args){
+	d5=(struct data*)args;
+	
+	d5->t = srtGetRelease();
+	d5->d = srtGetDeadline();
+	while(1){
+		LATBbits.LATB10 ^=1;
+
+		if (d5->r == 1)
+		{
+			d5->r=2;
+			LATBbits.LATB14 = 1;//Orange led switch on
+		}else{
+			d5->r=1;
 			LATBbits.LATB14 = 0;//Orange led switch off
 		}
 		
-		srtSleepUntil(SECONDS2TICKS(0.07), SECONDS2TICKS(0.07));
+		srtSleep(SECONDS2TICKS(0.08), SECONDS2TICKS(0.08));
 	}
 }
 
 void taskreference(void *args){
-	d2=(struct data*)args;
+	d=(struct data*)args;
 	
-	d2->t = srtGetRelease();
-	d2->d = srtGetDeadline();
+	d->t = srtGetRelease();
+	d->d = srtGetDeadline();
 	while(1){
 		//LATBbits.LATB10 ^=1;
 
@@ -79,105 +123,27 @@ void taskreference(void *args){
 			reference=1.0;
 			//LATBbits.LATB14 = 0;//Orange led switch off
 		}
-		//reference=0.5;
-		/*if (d2->sem==0){
-			//LATBbits.LATB14 = 1;
-			//LATDbits.LATD0=1;
-			//LATFbits.LATF1=1;
-			d2->sem=1;
-		}else{
-			//LATBbits.LATB14 = 0;
-			//LATDbits.LATD0=0;
-			//LATFbits.LATF1=0;
-			d2->sem=0;
-		}*/
-		srtSleepUntil(SECONDS2TICKS(0.05), SECONDS2TICKS(0.05));
+
+		srtSleep(SECONDS2TICKS(0.05), SECONDS2TICKS(0.05));
 	}	
 }
 
-
-
-/*void tasksend(void *args){
-
-	static unsigned char *p_r= &r;
-	static unsigned char *p_x0= &x[0];
-	static unsigned char *p_x1= &x[1];
-	static unsigned char *p_u= &u;
-	static unsigned char *p_t;
-	//LATBbits.LATB10 = 1; //To get time with the oscilloscope
-
-	//Read_State();
-	//static unsigned char *ptr,*ptrn,*ptrd;
-	d=(struct data*)args;
-	
-	d->t = trtGetRelease();
-	d->d = trtGetDeadline();
-	while(1){
-						
-
-		//LATBbits.LATB10 ^=1;
-
-		Read_State();
-		unsigned long now=trtGetNow();
-		p_t=&now;
-		p_r=&r;
-		p_x0=&x[0];
-		p_x1=&x[1];
-		p_u=&u;
-		
-		BufferOutput[0]=*p_r;
-		BufferOutput[1]=*(p_r+1);
-		BufferOutput[2]=*(p_r+2);
-		BufferOutput[3]=*(p_r+3);
-		BufferOutput[4]=*p_x0;
-		BufferOutput[5]=*(p_x0+1);
-		BufferOutput[6]=*(p_x0+2);
-		BufferOutput[7]=*(p_x0+3);
-		BufferOutput[8]=*p_x1;
-		BufferOutput[9]=*(p_x1+1);
-		BufferOutput[10]=*(p_x1+2);
-		BufferOutput[11]=*(p_x1+3);
-		BufferOutput[12]=*p_u;
-		BufferOutput[13]=*(p_u+1);
-		BufferOutput[14]=*(p_u+2);
-		BufferOutput[15]=*(p_u+3);
-		BufferOutput[16]=*p_t;
-		BufferOutput[17]=*(p_t+1);
-		BufferOutput[18]=*(p_t+2);
-		BufferOutput[19]=*(p_t+3);
-		BufferOutput[20]=1;
-		BufferOutput[21]=2;
-		BufferOutput[22]=3;
-		BufferOutput[23]=4;
-
-		
-		//Send(&buffer);
-		 //Force sending data
-		DMA4CONbits.CHEN  = 1;            // Re-enable DMA4 Channel
-		DMA4REQbits.FORCE = 1;            // Manual mode: Kick-start the first transfer
-
-		
-		//LATBbits.LATB14 = 1;
-		d->t+= SECONDS2TICKS(0.01);
-		d->d+= SECONDS2TICKS(0.01);
-		trtSleepUntil(d->t, d->d);
-	}	
-}*/
-
-
-struct data datos,datos2,datos3,datos4;
+struct data datos3,datos2, datos4,datos5,datos6;
 int main(void)
 {
 
 	
 	
-	datos.sem=0;
 	datos2.sem=0;
+	datos2.r=2;
 	datos3.sem=0;
 	datos3.r=2;
-	
 	datos4.sem=0;
 	datos4.r=2;
+	datos5.sem=0;
+	datos5.r=2;
+	datos6.sem=0;
+	datos6.r=2;
 	
 
 	//pruebaargs(&datos);
@@ -200,11 +166,14 @@ int main(void)
 	
 	
 	
-	srtInitKernel(80);
-	srtCreateTask(taskreference, 100, SECONDS2TICKS(0.05), SECONDS2TICKS(0.05), &datos);
-	srtCreateTask(taskprueba, 100, SECONDS2TICKS(0.09), SECONDS2TICKS(0.09), &datos3);
+	srtInitKernel(180);
+	
+	srtCreateTask(taskprueba2, 100, SECONDS2TICKS(0.06), SECONDS2TICKS(0.06), &datos2);
+	srtCreateTask(taskprueba3, 100, SECONDS2TICKS(0.09), SECONDS2TICKS(0.09), &datos3);
 	srtCreateTask(taskprueba4, 100, SECONDS2TICKS(0.07), SECONDS2TICKS(0.07), &datos4);
+	srtCreateTask(taskprueba5, 100, SECONDS2TICKS(0.08), SECONDS2TICKS(0.08), &datos5);
 
+	srtCreateTask(taskreference, 100, SECONDS2TICKS(0.05), SECONDS2TICKS(0.05), &datos6);
 	//trtCreateTask(taskcontroller, 100, SECONDS2TICKS(0.050), SECONDS2TICKS(0.050), &datos2);
 	//trtCreateTask(tasksend, 100, SECONDS2TICKS(0.1), SECONDS2TICKS(0.01), &datos3);
 	// trtCreateTask(prueba4, 100, SECONDS2TICKS(0.03), SECONDS2TICKS(0.05), &datos4);

@@ -27,6 +27,10 @@ struct kernel {
 
 static int current_cpu_ipl;
 
+void __attribute__((__interrupt__,__auto_psv__)) _T2Interrupt(void){
+		int a=0;
+}
+
 void EnableInterrupts(){
 	RESTORE_CPU_IPL(current_cpu_ipl); 
 	__asm__ volatile("disi #0x0000"); /* enable interrupts */ 
@@ -313,7 +317,7 @@ static void restartCycle(void){
 	EnableInterrupts();
 }
 
-void srtSleepUntil(unsigned long release, unsigned long deadline) {
+void srtSleep(unsigned long release, unsigned long deadline) {
 
 	struct task *t;
 	unsigned long temp_res;
