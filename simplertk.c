@@ -41,6 +41,35 @@ void DisableInterrupts(){
 	__asm__ volatile("disi #0x3FFF"); /* disable interrupts */ 
 }
 
+
+/********************************************************************/
+static void restartCycle(void){
+	unsigned char i;
+	unsigned long min_time=0xFFFFFFFF;
+	unsigned char task_ref=0;
+	DisableInterrupts(); // turn off interrupts
+	
+	/*for (i=1; i <= kernel.nbrOfTasks; i++) {
+		if((kernel.tasks[i].state!=TERMINATED) & (kernel.tasks[i].release<min_time) ){
+			task_ref=i;
+			min_time=kernel.tasks[i].release;
+		}
+	}
+	
+	//kernel.tasks[task_ref].release-=kernel.cycles;
+	//kernel.tasks[task_ref].deadline-=kernel.cycles;
+	*/
+	for (i=1; i <= kernel.nbrOfTasks; i++) {
+		if (kernel.tasks[i].state!=TERMINATED){
+			kernel.tasks[i].release-=kernel.cycles;
+			kernel.tasks[i].deadline-=kernel.cycles;
+		}
+	}
+	kernel.cycles=0;
+	EnableInterrupts();
+}
+
+
 volatile unsigned int sptemp;
 
  char scheduler(){
@@ -54,6 +83,7 @@ volatile unsigned int sptemp;
 
 	//add cycle if timer value
 	if ((IFS0bits.T1IF == 1) && (PR1==TIMER_VALUE)){
+		if (kernel.cycles==0xFFFFFFFF) restartCycle();
 		kernel.cycles++;
 	}
 	
@@ -62,7 +92,8 @@ volatile unsigned int sptemp;
 	running = 0;
  
 	//Read clock
-	now = (kernel.cycles * TIMER_VALUE) + ReadTimer1();	
+	//now = (kernel.cycles * TIMER_VALUE) + ReadTimer1();	
+	now=kernel.cycles;
 	
 	//Release tasks from TimeQ and determine new running task
 
@@ -95,9 +126,10 @@ volatile unsigned int sptemp;
 	
 	kernel.nextHit = nextHit;  
 
-	now = (kernel.cycles * TIMER_VALUE) + ReadTimer1();
+	//now = (kernel.cycles * TIMER_VALUE) + ReadTimer1();
+	now=kernel.cycles;
 	timeleft = nextHit - now;
-	if (timeleft < 4) {
+	/*if (timeleft < 4) {
 		timeleft = 4;
 	}
 
@@ -107,7 +139,7 @@ volatile unsigned int sptemp;
 		PR1 = TIMER_VALUE;
 	} else {
 		PR1 = 4;
-	}
+	}*/
 	
 	return running;
 }
@@ -117,6 +149,11 @@ void dispatch(void){
 	t = &kernel.tasks[kernel.running];
 	sptemp=t->sp;
 }
+
+
+
+
+/**************************************************************************/
 
 
 void srtInitKernel(int idlestack){
@@ -288,34 +325,10 @@ void srtSignal(unsigned char semnbr) {
 }
 
 unsigned long srtCurrentTime(void) {
-	return (kernel.cycles * TIMER_VALUE) + ReadTimer1();
+	return kernel.cycles;
 }
 
-static void restartCycle(void){
-	unsigned char i;
-	unsigned long min_time=0xFFFFFFFF;
-	unsigned char task_ref=0;
-	DisableInterrupts(); // turn off interrupts
-	
-	for (i=1; i <= kernel.nbrOfTasks; i++) {
-		if((kernel.tasks[i].state!=TERMINATED) & (kernel.tasks[i].release<min_time) ){
-			task_ref=i;
-			min_time=kernel.tasks[i].release;
-		}
-	}
-	
-	kernel.tasks[task_ref].release=0;
-	kernel.tasks[task_ref].deadline-=min_time;
-	
-	for (i=1; i <= kernel.nbrOfTasks; i++) {
-		if ((kernel.tasks[i].state!=TERMINATED) & (i!=task_ref)){
-			kernel.tasks[i].release-=min_time;
-			kernel.tasks[i].deadline-=min_time;
-		}
-	}
-	kernel.cycles=0;
-	EnableInterrupts();
-}
+
 
 void srtSleep(unsigned long release, unsigned long deadline) {
 
