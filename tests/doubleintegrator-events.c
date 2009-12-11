@@ -239,7 +239,10 @@ void taskcontroller(void *args){
 		//d3->d+= SECONDS2TICKS(0.05);
 		
 		double next_event=Calculate_Next_Activation_Time();
+		srtWait(1);
 		event_time=next_event*1000;
+		srtSignal(1);
+
 		//a+=0.001;
 		unsigned long next_ticks=SECONDS2TICKS((float)(round2nearest(next_event)/1000.0));
 		srtSleep( next_ticks,next_ticks);
@@ -298,8 +301,10 @@ void tasksend(void *args){
 		buffer[18]=*(p_t+1);
 		buffer[19]=*(p_t+2);
 		buffer[20]=*(p_t+3);
+		srtWait(1);
 		buffer[21]=*p_e;
 		buffer[22]=*(p_e+1);
+		srtSignal(1);
 		buffer[23]=3;
 		buffer[24]=4;
 
@@ -353,7 +358,7 @@ int main(void)
 	
 	srtInitKernel(100);
 	//ADC2_init();
-	
+	srtCreateSemaphore(1, 1);
 	
 	srtCreateTask(taskreference, 100, SECONDS2TICKS(1), SECONDS2TICKS(1), &datos);
 	srtCreateTask(taskcontroller, 100, SECONDS2TICKS(0.010), SECONDS2TICKS(0.010), &datos2);
