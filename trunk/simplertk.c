@@ -7,7 +7,7 @@ _FGS(GCP_OFF);// Disable Code Protection
 
 /************** KERNEL DATA STRUCTURES *******************/
 struct task {
-  unsigned int sp;		// Stack pointer
+  unsigned int *sp;		// Stack pointer
   unsigned long release;
   unsigned long deadline;
   unsigned char state;     // 0=terminated, 1=readyQ, 2=timeQ
@@ -27,9 +27,6 @@ struct kernel {
 
 static int current_cpu_ipl;
 
-void __attribute__((__interrupt__,__auto_psv__)) _T2Interrupt(void){
-		int a=0;
-}
 
 void EnableInterrupts(){
 	RESTORE_CPU_IPL(current_cpu_ipl); 
@@ -45,28 +42,17 @@ void DisableInterrupts(){
 /********************************************************************/
 static void restartCycle(void){
 	unsigned char i;
-	unsigned long min_time=0xFFFFFFFF;
-	unsigned char task_ref=0;
+	
 	DisableInterrupts(); // turn off interrupts
-	
-	/*for (i=1; i <= kernel.nbrOfTasks; i++) {
-		if((kernel.tasks[i].state!=TERMINATED) & (kernel.tasks[i].release<min_time) ){
-			task_ref=i;
-			min_time=kernel.tasks[i].release;
-		}
-	}
-	
-	//kernel.tasks[task_ref].release-=kernel.cycles;
-	//kernel.tasks[task_ref].deadline-=kernel.cycles;
-	*/
+	//tasks time shift 
 	for (i=1; i <= kernel.nbrOfTasks; i++) {
 		if (kernel.tasks[i].state!=TERMINATED){
 			kernel.tasks[i].release-=kernel.cycles;
 			kernel.tasks[i].deadline-=kernel.cycles;
 		}
 	}
-	kernel.cycles=0;
-	EnableInterrupts();
+	kernel.cycles=0;	// reset system clock
+	EnableInterrupts();	 // turn on interrupts
 }
 
 
@@ -233,18 +219,16 @@ void srtCreateTask(void (*fun)(void*), unsigned int stacksize, unsigned long rel
 	*sp++=SPLIM; //SPLIM
 	*sp++=0x0000; //SR
 
-	*sp++ = kernel.memptr+24; 	// w14
+	*sp++ = args; 	// wo
+	*sp++ = 0x0000; // w1
 	// initialize stack
 	for(i=0;i<12;i++)
 		*sp++ = 0x0000; // w13-w2
-
-	*sp++ = args; 	// wo
-	*sp++ = 0x0000; // w1
-
+	*sp++ = kernel.memptr+24; 	// w14
 	
 	*sp++=0x0000; //RCOUNT
 	*sp++=0x0000; //TBLPAG
-	*sp++=0x0000; //CORCON
+	*sp++=0x0024; //CORCON
 	*sp++=0x0000; //PSVPAG
 
 
