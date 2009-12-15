@@ -7,22 +7,22 @@ _FGS(GCP_OFF);// Disable Code Protection
 
 /************** KERNEL DATA STRUCTURES *******************/
 struct task {
-  unsigned int *sp;		// Stack pointer
-  unsigned long release;
-  unsigned long deadline;
-  unsigned char state;     // 0=terminated, 1=readyQ, 2=timeQ
-                     // 3=waiting for Sem1, 4=waiting for Sem2, etc.
+	unsigned int *sp;		// Stack pointer
+	unsigned long release;
+	unsigned long deadline;
+	unsigned char state;     // 0=terminated, 1=readyQ, 2=timeQ
+	// 3=waiting for Sem1, 4=waiting for Sem2, etc.
 };
 
 struct kernel {
-  unsigned char nbrOfTasks; // number of tasks created so far
-  unsigned char running;
-  struct task tasks[MAXNBRTASKS+1]; // +1 for the idle task
-  unsigned char semaphores[MAXNBRSEMAPHORES]; // counters for semaphores
-  unsigned int *memptr; // pointer to free memory
-  volatile unsigned long cycles;  // number of major cycles since system start
+	unsigned char nbrOfTasks; // number of tasks created so far
+	unsigned char running;
+	struct task tasks[MAXNBRTASKS+1]; // +1 for the idle task
+	unsigned char semaphores[MAXNBRSEMAPHORES]; // counters for semaphores
+	unsigned int *memptr; // pointer to free memory
+	volatile unsigned long cycles;  // number of major cycles since system start
 
-  unsigned long nextHit; // next kernel wake-up time
+	unsigned long nextHit; // next kernel wake-up time
 } kernel;
 
 static int current_cpu_ipl;
@@ -58,7 +58,7 @@ static void restartCycle(void){
 
 volatile unsigned int sptemp;
 
- char scheduler(){
+char scheduler(){
 	unsigned char running, oldrunning;
 	struct task *t;
 	unsigned char i;
@@ -76,7 +76,7 @@ volatile unsigned int sptemp;
 	nextHit = 0x7FFFFFFF;
 	oldrunning = kernel.running;
 	running = 0;
- 
+
 	//Read clock
 	//now = (kernel.cycles * TIMER_VALUE) + ReadTimer1();	
 	now=kernel.cycles;
@@ -103,7 +103,7 @@ volatile unsigned int sptemp;
 		//store old context
 		t = &kernel.tasks[oldrunning];
 		t->sp=sptemp;
-	
+		
 		kernel.running = running;
 		
 	}else{
@@ -170,21 +170,21 @@ void srtInitKernel(int idlestack){
 
 	unsigned int timer_prescaler1;
 	switch (PRESCALER){
-		case 1:
-			timer_prescaler1=T1_PS_1_1;
-			break;
-		case 8:
-			timer_prescaler1=T1_PS_1_8;
-			break;
-		case 64:
-			timer_prescaler1=T1_PS_1_64;
-			break;
-		case 256:
-			timer_prescaler1=T1_PS_1_256;
+	case 1:
+		timer_prescaler1=T1_PS_1_1;
+		break;
+	case 8:
+		timer_prescaler1=T1_PS_1_8;
+		break;
+	case 64:
+		timer_prescaler1=T1_PS_1_64;
+		break;
+	case 256:
+		timer_prescaler1=T1_PS_1_256;
 	}
 	OpenTimer1(T1_ON & T1_GATE_OFF & T1_IDLE_STOP &
-		timer_prescaler1 & T1_SYNC_EXT_OFF &
-		T1_SOURCE_INT, TIMER_VALUE);
+	timer_prescaler1 & T1_SYNC_EXT_OFF &
+	T1_SOURCE_INT, TIMER_VALUE);
 	
 
 	
@@ -194,7 +194,7 @@ void srtInitKernel(int idlestack){
 	TRISBbits.TRISB10 = 0;
 
 }
-	
+
 extern void _T1Interrupt(void);
 
 void srtCreateTask(void (*fun)(void*), unsigned int stacksize, unsigned long release, unsigned long deadline, void* args){
@@ -223,7 +223,7 @@ void srtCreateTask(void (*fun)(void*), unsigned int stacksize, unsigned long rel
 	*sp++ = 0x0000; // w1
 	// initialize stack
 	for(i=0;i<12;i++)
-		*sp++ = 0x0000; // w13-w2
+	*sp++ = 0x0000; // w13-w2
 	*sp++ = kernel.memptr+24; 	// w14
 	
 	*sp++=0x0000; //RCOUNT
@@ -241,7 +241,7 @@ void srtCreateTask(void (*fun)(void*), unsigned int stacksize, unsigned long rel
 	t->release = release;
 	t->deadline = deadline;
 	t->state = TIMEQ;
-  
+
 	EnableInterrupts();
 	_T1Interrupt(); // call interrupt handler to schedule
 
@@ -250,11 +250,11 @@ void srtCreateTask(void (*fun)(void*), unsigned int stacksize, unsigned long rel
 
 void srtCreateSemaphore(unsigned char semnbr, unsigned char initVal) {
 
-  DisableInterrupts(); // turn off interrupts
+	DisableInterrupts(); // turn off interrupts
 
-  kernel.semaphores[semnbr-1] = initVal;
-  
-  EnableInterrupts(); // set enabled interrupts;
+	kernel.semaphores[semnbr-1] = initVal;
+
+	EnableInterrupts(); // set enabled interrupts;
 }
 
 
@@ -269,11 +269,10 @@ void srtWait(unsigned char semnbr) {
 
 	s = &kernel.semaphores[semnbr-1];
 	if ((*s) > 0) {
-	(*s)--;
+		(*s)--;
 	} else {
-
-	t->state = semnbr + WAIT_OFFSET; // waiting for Sem#semnbr
-	_T1Interrupt(); // call interrupt handler to schedule
+		t->state = semnbr + WAIT_OFFSET; // waiting for Sem#semnbr
+		_T1Interrupt(); // call interrupt handler to schedule
 	}
 
 	EnableInterrupts(); // reenable interrupts
@@ -281,31 +280,31 @@ void srtWait(unsigned char semnbr) {
 
 void srtSignal(unsigned char semnbr) {
 
-  unsigned char i;
-  struct task *t;
-  unsigned long minDeadline = 0xFFFFFFFF;
-  unsigned char taskToReadyQ = 0;
+	unsigned char i;
+	struct task *t;
+	unsigned long minDeadline = 0xFFFFFFFF;
+	unsigned char taskToReadyQ = 0;
 
-  DisableInterrupts(); // disable interrupts
+	DisableInterrupts(); // disable interrupts
 
-  for (i=1; i <= kernel.nbrOfTasks; i++) {
-    t = &kernel.tasks[i];
-    if (t->state == (semnbr + WAIT_OFFSET)) {
-      if (t->deadline <= minDeadline) {
-	taskToReadyQ = i;
-	minDeadline = t->deadline;
-      }
-    }
-  }
+	for (i=1; i <= kernel.nbrOfTasks; i++) {
+		t = &kernel.tasks[i];
+		if (t->state == (semnbr + WAIT_OFFSET)) {
+			if (t->deadline <= minDeadline) {
+				taskToReadyQ = i;
+				minDeadline = t->deadline;
+			}
+		}
+	}
 
-  if (taskToReadyQ == 0) {
-    kernel.semaphores[semnbr-1]++;
-  } else {
-    kernel.tasks[taskToReadyQ].state = READYQ; // make task ready
-    _T1Interrupt(); // call interrupt handler to schedule
-  }
+	if (taskToReadyQ == 0) {
+		kernel.semaphores[semnbr-1]++;
+	} else {
+		kernel.tasks[taskToReadyQ].state = READYQ; // make task ready
+		_T1Interrupt(); // call interrupt handler to schedule
+	}
 
-  EnableInterrupts(); // reenable interrupts
+	EnableInterrupts(); // reenable interrupts
 }
 
 unsigned long srtCurrentTime(void) {
