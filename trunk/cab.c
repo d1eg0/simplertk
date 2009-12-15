@@ -4,9 +4,9 @@
 
 
 
-cab *opencab(unsigned int num_buffers, unsigned int dim_buffers){
+cab *srtOpencab(unsigned int num_buffers, unsigned int dim_buffers){
 	cab *c=malloc(sizeof(cab));
-	buffer **Buffers=malloc(sizeof(buffer)*num_buffers);
+	buffer **Buffers=malloc(sizeof(buffer *)*num_buffers);
 	
 	unsigned int i;
 	for(i=0;i<num_buffers;i++){
@@ -16,6 +16,7 @@ cab *opencab(unsigned int num_buffers, unsigned int dim_buffers){
 		if(i<num_buffers-1) Buffers[i]->next=Buffers[i+1];
 		else Buffers[i]->next=NIL;
 	}
+	c->first=Buffers[0];
 	c->free=Buffers[0];
 	c->mrb=Buffers[num_buffers-1];
 	c->max_buf=num_buffers;
@@ -23,11 +24,17 @@ cab *opencab(unsigned int num_buffers, unsigned int dim_buffers){
 	return c;	
 }
 
-void deletecab(cab *c){
-	free(c->mrb);
+void srtDeletecab(cab *c){
+	unsigned int i;
+	buffer *Buffers=c->first; //falta coherencia
+	for(i=0;i<c->max_buf;i++){
+		free(Buffers[i]->data);
+		free(Buffers[i]);
+	}
+	free(c);
 }
 
-pointer reserve(cab *c){
+pointer srtReserve(cab *c){
 	pointer p;
 	DisableInterrupts();
 	p=c->free;
@@ -35,7 +42,7 @@ pointer reserve(cab *c){
 	return p;
 }
 
-void putmes(cab *c, pointer p){
+void srtPutmes(cab *c, pointer p){
 	DisableInterrupts();
 	if (c->mrb->use == 0){
 		c->mrb->next = c->free;
@@ -45,7 +52,7 @@ void putmes(cab *c, pointer p){
 	EnableInterrupts();
 }
 
-pointer  getmes(cab *c){
+pointer  srtGetmes(cab *c){
 	pointer p;
 	DisableInterrupts();
 	p=c->mrb;
@@ -54,7 +61,7 @@ pointer  getmes(cab *c){
 	return p;
 }
 
-void unget(cab *c, pointer p){
+void srtUnget(cab *c, pointer p){
 	DisableInterrupts();
 	p->use--;
 	if ((p->use == 0) && (p!= c->mrb)){

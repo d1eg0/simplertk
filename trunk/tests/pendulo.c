@@ -83,9 +83,8 @@ void TaskPWM(void *args)
 		
 		PDC1=fabs(u*5000/V_MAX);//100 bien
 		
-		d->t+= SECONDS2TICKS(0.05);
-		d->d+= SECONDS2TICKS(0.05);
-		srtSleepUntil(d->t, d->d);
+
+		srtSleep(SECONDS2TICKS(0.05), SECONDS2TICKS(0.05));
 	}
 
 
@@ -143,9 +142,8 @@ void TaskSend(void *args)
 		
 		Send(&buffer);
 		
-		d1->t+= SECONDS2TICKS(0.1);
-		d1->d+= SECONDS2TICKS(0.1);
-		srtSleepUntil(d1->t, d1->d);
+
+		srtSleep(SECONDS2TICKS(0.1), SECONDS2TICKS(0.1));
 		
 	}
 }

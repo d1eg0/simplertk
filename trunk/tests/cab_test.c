@@ -7,21 +7,22 @@ cab *MyCab;
 void taskReader(void *args){
 	pointer pread;
 	while(1){
-		pread=getmes(MyCab);
-		unget(MyCab,pread);
+		pread=srtGetmes(MyCab);
+		srtUnget(MyCab,pread);
 		srtSleep(SECONDS2TICKS(0.05), SECONDS2TICKS(0.05));
 	}
 
 }
+
 void taskWriter(void *args){
 	pointer pw;
 
 	while(1){
 		LATBbits.LATB14^= 1;
-		pw=reserve(MyCab);
+		pw=srtReserve(MyCab);
 		*pw->data='c';
 		*(pw->data+1)='a';
-		putmes(MyCab,pw);
+		srtPutmes(MyCab,pw);
 		srtSleep(SECONDS2TICKS(0.05), SECONDS2TICKS(0.05));
 	}
 }
@@ -42,7 +43,7 @@ int main(void){
 	TRISBbits.TRISB14=0;
 	LATBbits.LATB14 = 0;
 
-	MyCab=opencab(2,2);
+	MyCab=srtOpencab(2,2);
 
 	srtInitKernel(180);
 
