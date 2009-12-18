@@ -6,7 +6,7 @@
 #include <math.h>
 #define PI 3.14159265358979323846
 #define STEP 0.0001124148372445117
-            							
+
 static signed int PulseEncoder_pos=0;
 static unsigned int PortRD4=0;
 static unsigned int PortRD5=0;
@@ -14,27 +14,8 @@ static unsigned int last_PortRD4=0;
 static unsigned int last_PortRD5=0;
 
 static float u=0;
-static signed int vel_PEncoder=0;
 
 
-static signed int pos_QEncoder=0;
-static signed int pos_QEncoder_old=0;
-static signed int vel_QEncoder=0;
-static signed int temp_pos_QEncoder=0;
-static int contador=0;
-static int temp=0;
-
-static int contador2=0;
-static signed int turns=0;
-static int Q12=1;
-static float KineticEnergy=0;
-static float PotentialEnergy=0;
-unsigned char RXBuff = 0;
-static float aaaa=0;
-static int sign=0;
-static int contadorx=0;
-
-static unsigned int a;
 
 struct data{
 	unsigned int sem;
@@ -44,7 +25,13 @@ struct data{
 struct data* d;
 struct data* d1;
 static double x1=0,x1_ant=0,x2=0,x3=0,x3_ant=0,x4=0;
-static double k1=10,k2=0,k3=22,k4=4;
+
+//las mejores k
+static double k1=25,k2=15,k3=32,k4=9;//k1=10,k2=0,k3=22,k4=4; k1=10,k2=0.3,k3=32,k4=9.9;
+//static double k1=59.5448,k2=29.8769,k3=70.8934,k4=-6.6124;
+
+
+//63.2494   28.1537   59.3897   -9.2252
 static const double V_MAX=3.3;	
 void TaskPWM(void *args)
 {
@@ -54,6 +41,8 @@ void TaskPWM(void *args)
 	d->d = srtGetDeadline();
 
 	while(1){
+		//LATBbits.LATB10 ^=1;
+		LATBbits.LATB10 ^=1;
 		x1=PulseEncoder_pos*STEP;
 		x2=(x1-x1_ant)/0.05;
 		
@@ -64,35 +53,34 @@ void TaskPWM(void *args)
 		x3_ant=x3;
 		
 		//1250
-		if (PulseEncoder_pos>3000){ 
-		//	//u=-3000;
-			u=V_MAX;
-			LATDbits.LATD8=0;
-		}else if (PulseEncoder_pos<-3000){
-		//	//u=3000;
-			u=V_MAX;
-			LATDbits.LATD8=1;
-		}else{
+		if(PulseEncoder_pos<3000 && PulseEncoder_pos>-3000){
 			u=-k1*x1-k2*x2-k3*x3-k4*x4;
 			if(u<0)LATDbits.LATD8=0; //izquierda
 			if(u>0)LATDbits.LATD8=1; //derecha
-		}		
+		}else if (PulseEncoder_pos>3000){ 
+			//	//u=-3000;
+			u=V_MAX;
+			LATDbits.LATD8=0;
+		}else if (PulseEncoder_pos<-3000){
+			//	//u=3000;
+			u=V_MAX;
+			LATDbits.LATD8=1;
+		}	
 		
 		
 		if(fabs(u)>V_MAX) u=V_MAX;
 		
-		PDC1=fabs(u*5000/V_MAX);//100 bien
+		PDC1=fabs(u*5000/V_MAX)+100;//100 bien
 		
-
-		srtSleep(SECONDS2TICKS(0.05), SECONDS2TICKS(0.05));
+		srtSleep(SECONDS2TICKS(0.01), SECONDS2TICKS(0.01));
 	}
 
 
 }
 
 /* Send a character using the UART port
- */
- unsigned char buffer[24];
+*/
+unsigned char buffer[24];
 void TaskSend(void *args)
 {
 	static unsigned char *p_t;
@@ -102,7 +90,7 @@ void TaskSend(void *args)
 	d1->d = srtGetDeadline();
 	
 	while(1){
-		
+	//LATBbits.LATB10 ^=1;
 		unsigned long now=srtCurrentTime();
 		unsigned int posq=POSCNT;
 		buffer[0]=0x05;
@@ -122,9 +110,9 @@ void TaskSend(void *args)
 		buffer[8]=*(p_t+1);
 
 		
-		p_t=&vel_QEncoder;
-		buffer[9]=*p_t;
-		buffer[10]=*(p_t+1);
+		//p_t=&vel_QEncoder;
+		//buffer[9]=*p_t;
+		//buffer[10]=*(p_t+1);
 
 		
 		p_t=&u;
@@ -142,25 +130,12 @@ void TaskSend(void *args)
 		
 		Send(&buffer);
 		
-
-		srtSleep(SECONDS2TICKS(0.1), SECONDS2TICKS(0.1));
+		srtSleep(SECONDS2TICKS(0.01), SECONDS2TICKS(0.01));
 		
 	}
 }
 
-/* Get a character from the UART buffer
- 
-void TaskReceive()
-{
-	LATBbits.LATB14 ^= 1;
-	
-	if (EE_UART1_Receive(&RXBuff) == 0) {
-		EE_UART1_Send('<');
-		EE_UART1_Send(RXBuff);
-		EE_UART1_Send('>');
-	}
-		
-}*/
+
 void QuadratureEncoder_config(void)
 {
 	
@@ -186,57 +161,96 @@ void QuadratureEncoder_config(void)
 
 
 
-void __attribute__((__interrupt__)) _CNInterrupt(void)
+void __attribute__((__interrupt__,__auto_psv__)) _CNInterrupt(void)
 {
-IFS1bits.CNIF=0; // Clear interrupt flag
+	IFS1bits.CNIF=0; // Clear interrupt flag
 
-PortRD4=PORTDbits.RD4;
-PortRD5=PORTDbits.RD5;
+	PortRD4=PORTDbits.RD4;
+	PortRD5=PORTDbits.RD5;
 
-if (PortRD4 != last_PortRD4)PulseEncoder_pos++;
-if (PortRD5 != last_PortRD5)PulseEncoder_pos--;
+	if (PortRD4 != last_PortRD4)PulseEncoder_pos++;
+	if (PortRD5 != last_PortRD5)PulseEncoder_pos--;
 
-last_PortRD4=PortRD4;
-last_PortRD5=PortRD5;
-    
+	last_PortRD4=PortRD4;
+	last_PortRD5=PortRD5;
+	
 }
 
 void PulseEncoder_config()
 {
-/* set BUTTON pins as inputs */
+	/* set BUTTON pins as inputs */
 	TRISDbits.TRISD4  = 1; 
 	TRISDbits.TRISD5  = 1; 
 
 	CNEN1bits.CN13IE = 1;
 	CNEN1bits.CN14IE = 1;
-			
+	
 	IFS1bits.CNIF = 0;
 	IEC1bits.CNIE = 1;
 }
 
+inline void delay(unsigned int us){
+	unsigned int i;
+	for(i=0;i<us;i++){
+		asm volatile("do #15, inner1" );	
+		asm volatile("nop");
+		asm volatile("inner1: nop");
+	}
+}
 
+void taskLoad1(void *args){
+
+	
+	while(1){
+		//asm("bset  LATB,#10");
+		//delay(100);
+		//asm("bclr  LATB,#10");
+		srtSleep(SECONDS2TICKS(0.1), SECONDS2TICKS(0.1));
+		
+	}
+}
+void taskLoad2(void *args){
+
+	
+	while(1){
+		//asm("bset  LATB,#10");
+		//delay(100);
+		//asm("bclr  LATB,#10");
+		srtSleep(SECONDS2TICKS(4), SECONDS2TICKS(4));
+		
+	}
+}
+void taskLoad3(void *args){
+
+	
+	while(1){
+		//asm("bset  LATB,#10");
+		//delay(100);
+		//asm("bclr  LATB,#10");
+		asm("nop");
+		
+		srtSleep(SECONDS2TICKS(0.8), SECONDS2TICKS(0.8));
+		
+	}
+}
 
 struct data datos,datos1;
 int main(void)
 {
 	PulseEncoder_config();//Importantisima la F-->1111
-
+	UART1_DMA_Init();
 	QuadratureEncoder_config();
 	PWM_config();
 	
 	srtInitKernel(80);
 	srtCreateTask(TaskPWM, 100, SECONDS2TICKS(0.01), SECONDS2TICKS(0.01), &datos);
-	srtCreateTask(TaskSend, 100, SECONDS2TICKS(1), SECONDS2TICKS(0.1), &datos1);
-	
+	srtCreateTask(TaskSend, 100, SECONDS2TICKS(0.01), SECONDS2TICKS(0.02), &datos1);
+	srtCreateTask(taskLoad1, 100, SECONDS2TICKS(0.1), SECONDS2TICKS(0.2), 0);
+	srtCreateTask(taskLoad1, 100, SECONDS2TICKS(0.2), SECONDS2TICKS(0.3), 0);
+	srtCreateTask(taskLoad1, 100, SECONDS2TICKS(0.3), SECONDS2TICKS(0.4), 0);
+	srtCreateTask(taskLoad1, 100, SECONDS2TICKS(0.4), SECONDS2TICKS(0.5), 0);
+	srtCreateTask(taskLoad2, 100, SECONDS2TICKS(4), SECONDS2TICKS(4), 0);
 
-	/* Program a cyclic alarm which will fire after an offset of 10 counter 
-	* ticks, and after that periodically every 500 ticks */
-	/*SetRelAlarm(AlarmQuadratureEncoder, 500, 500);
-	SetRelAlarm(AlarmPulseEncoder, 500, 500);
-	SetRelAlarm(AlarmPWM, 500, 10);
-	SetRelAlarm(AlarmSend, 500, 250);
-	SetRelAlarm(AlarmReceive, 500, 500);*/
-	
 	/* Forever loop: background activities (if any) should go here */
 	for (;;);
 	

@@ -14,7 +14,7 @@ struct task {
 	// 3=waiting for Sem1, 4=waiting for Sem2, etc.
 };
 
-struct kernel {
+volatile struct kernel {
 	unsigned char nbrOfTasks; // number of tasks created so far
 	unsigned char running;
 	struct task tasks[MAXNBRTASKS+1]; // +1 for the idle task
@@ -78,7 +78,6 @@ char scheduler(){
 	running = 0;
 
 	//Read clock
-	//now = (kernel.cycles * TIMER_VALUE) + ReadTimer1();	
 	now=kernel.cycles;
 	
 	//Release tasks from TimeQ and determine new running task
@@ -112,20 +111,8 @@ char scheduler(){
 	
 	kernel.nextHit = nextHit;  
 
-	//now = (kernel.cycles * TIMER_VALUE) + ReadTimer1();
-	now=kernel.cycles;
-	timeleft = nextHit - now;
-	/*if (timeleft < 4) {
-		timeleft = 4;
-	}
 
-	if ((unsigned long)ReadTimer1() + timeleft <(TIMER_VALUE+1)) {
-		PR1 = ReadTimer1() + timeleft;
-	} else if (ReadTimer1() < (TIMER_VALUE+1) - 4) {
-		PR1 = TIMER_VALUE;
-	} else {
-		PR1 = 4;
-	}*/
+
 	
 	return running;
 }
@@ -230,10 +217,6 @@ void srtCreateTask(void (*fun)(void*), unsigned int stacksize, unsigned long rel
 	*sp++=0x0000; //TBLPAG
 	*sp++=0x0024; //CORCON
 	*sp++=0x0000; //PSVPAG
-
-
-	
-	
 
 
 	t = &kernel.tasks[kernel.nbrOfTasks];

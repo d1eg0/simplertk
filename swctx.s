@@ -2,6 +2,7 @@
 .text
 	.global __T1Interrupt 
 __T1Interrupt: 
+	;bset  LATB,#10		; debug timing
 	;; save context
 	
 	push    _SPLIM
@@ -61,6 +62,8 @@ __noswctx:
 
 	disi    #2
 	disi    #2
-
+	
+	;bclr  LATB,#10			; debug timing
+	
 	retfie                  ;  and return from interrupt 
 .end
