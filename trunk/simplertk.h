@@ -12,7 +12,7 @@
 
 
 
-#define MAXNBRTASKS 6
+#define MAXNBRTASKS 10
 #define MAXNBRSEMAPHORES 6
 
 /*
@@ -68,7 +68,7 @@ void srtInitKernel(int idlestack);
 /*! 
 \brief Create a task
 \param fun task source code adress
-\param stacksize task stack size
+\param stacksize task stack size (words, word = 2 bytes)
 \param release task release (ticks)
 \param deadline task deadline (ticks)
 \param args task arguments adress
