@@ -3,6 +3,7 @@
 #include "../uart_dma.h"
 #include "../setup.h"
 
+
 #include <math.h>
 #define PI 3.14159265358979323846
 #define STEP 0.0001124148372445117
@@ -206,14 +207,46 @@ void taskLoad1(void *args){
 	
 	while(1){
 		//asm("bset  LATB,#10");
-		delay(950);
+		delay(990);
 		//asm("bclr  LATB,#10");
 		srtSleep(SECONDS2TICKS(0.01), SECONDS2TICKS(0.01));
 		
 	}
 }
-
-
+void taskLoad2(void *args){
+	unsigned char *p_t;
+	
+	while(1){
+		//asm("bset  LATB,#10");
+		LATBbits.LATB10 ^=1;
+		//delay(950);
+		unsigned long now=srtCurrentTime();
+		unsigned long r=srtGetRelease();
+		unsigned long d=srtGetDeadline();
+		buffer[0]=0x05;
+		p_t=&now;
+		buffer[1]=*p_t;
+		buffer[2]=*(p_t+1);
+		buffer[3]=*(p_t+2);
+		buffer[4]=*(p_t+3);
+		
+		p_t=&r;
+		buffer[5]=*p_t;
+		buffer[6]=*(p_t+1);
+		buffer[7]=*(p_t+2);
+		buffer[8]=*(p_t+3);
+		
+		p_t=&d;
+		buffer[9]=*p_t;
+		buffer[10]=*(p_t+1);
+		buffer[11]=*(p_t+2);
+		buffer[12]=*(p_t+3);
+		
+		Send(&buffer);
+		srtSleep(SECONDS2TICKS(0.01), SECONDS2TICKS(0.01));
+		
+	}
+}
 void taskLoad3(void *args){
 
 	
@@ -223,7 +256,7 @@ void taskLoad3(void *args){
 		//asm("bclr  LATB,#10");
 		asm("nop");
 		delay(100000);
-		srtSleep(SECONDS2TICKS(1), SECONDS2TICKS(1));
+		srtSleep(SECONDS2TICKS(0.02), SECONDS2TICKS(0.02));
 		
 	}
 }
@@ -231,26 +264,28 @@ void taskLoad3(void *args){
 struct data datos,datos1;
 int main(void)
 {
-	PulseEncoder_config();//Importantisima la F-->1111
+	//PulseEncoder_config();//Importantisima la F-->1111
 	UART1_DMA_Init();
-	QuadratureEncoder_config();
-	PWM_config();
+	//QuadratureEncoder_config();
+	//PWM_config();
 	
 	srtInitKernel(80);
-	srtCreateTask(TaskPWM, 100, SECONDS2TICKS(0.03), SECONDS2TICKS(0.03), &datos);
-	srtCreateTask(TaskSend, 100, SECONDS2TICKS(0.01), SECONDS2TICKS(0.02), &datos1);
+	//srtCreateTask(TaskPWM, 100, SECONDS2TICKS(0.03), SECONDS2TICKS(0.03), &datos);
+	//srtCreateTask(TaskSend, 100, SECONDS2TICKS(0.01), SECONDS2TICKS(0.02), &datos1);
 	//PDC1=5100;
-	/*srtCreateTask(taskLoad1, 100, SECONDS2TICKS(0.011), SECONDS2TICKS(0.2), 0);
-	srtCreateTask(taskLoad1, 100, SECONDS2TICKS(0.012), SECONDS2TICKS(0.2), 0);
-	srtCreateTask(taskLoad1, 100, SECONDS2TICKS(0.013), SECONDS2TICKS(0.2), 0);
-	srtCreateTask(taskLoad1, 100, SECONDS2TICKS(0.014), SECONDS2TICKS(0.2), 0);
-	srtCreateTask(taskLoad1, 100, SECONDS2TICKS(0.015), SECONDS2TICKS(0.2), 0);
-	srtCreateTask(taskLoad1, 100, SECONDS2TICKS(0.016), SECONDS2TICKS(0.2), 0);
-	srtCreateTask(taskLoad1, 100, SECONDS2TICKS(0.017), SECONDS2TICKS(0.2), 0);
-	srtCreateTask(taskLoad1, 100, SECONDS2TICKS(0.018), SECONDS2TICKS(0.2), 0);
-	srtCreateTask(taskLoad2, 100, SECONDS2TICKS(0.019), SECONDS2TICKS(0.2), 0);
+	srtCreateTask(taskLoad1, 100, SECONDS2TICKS(0.011), SECONDS2TICKS(0.02), 0);
+	srtCreateTask(taskLoad1, 100, SECONDS2TICKS(0.012), SECONDS2TICKS(0.02), 0);
+	srtCreateTask(taskLoad1, 100, SECONDS2TICKS(0.013), SECONDS2TICKS(0.02), 0);
+	srtCreateTask(taskLoad1, 100, SECONDS2TICKS(0.014), SECONDS2TICKS(0.02), 0);
+	srtCreateTask(taskLoad1, 100, SECONDS2TICKS(0.015), SECONDS2TICKS(0.02), 0);
+	srtCreateTask(taskLoad1, 100, SECONDS2TICKS(0.016), SECONDS2TICKS(0.02), 0);
+	srtCreateTask(taskLoad1, 100, SECONDS2TICKS(0.017), SECONDS2TICKS(0.02), 0);
+	srtCreateTask(taskLoad1, 100, SECONDS2TICKS(0.018), SECONDS2TICKS(0.02), 0);
+	srtCreateTask(taskLoad1, 100, SECONDS2TICKS(0.019), SECONDS2TICKS(0.02), 0);
+	/*srtCreateTask(taskLoad2, 100, SECONDS2TICKS(0.019), SECONDS2TICKS(0.2), 0);
 	srtCreateTask(taskLoad3, 100, SECONDS2TICKS(1), SECONDS2TICKS(1), 0);*/
-	srtCreateTask(taskLoad2, 100, SECONDS2TICKS(0.01), SECONDS2TICKS(0.2), 0);
+	srtCreateTask(taskLoad2, 100, SECONDS2TICKS(0.01), SECONDS2TICKS(0.02), 0);
+
 	/* Forever loop: background activities (if any) should go here */
 	for (;;);
 	

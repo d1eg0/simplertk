@@ -7,12 +7,17 @@
 
 #include <p33fj256mc710.h>
 #include <timer.h>
-#include "setup.h"
-#include "uart_dma.h"
 
 
-
-#define MAXNBRTASKS 10
+/*!
+ \def MAXNBRTASKS 
+Max number of tasks
+ */
+#define MAXNBRTASKS 20
+/*!
+ \def MAXNBRSEMAPHORES 
+Max number of semaphores
+ */
 #define MAXNBRSEMAPHORES 6
 
 /*

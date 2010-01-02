@@ -11,19 +11,31 @@ typedef struct buffer buffer;
 typedef struct cab cab;
 typedef struct buffer *pointer;
 
+/*!
+\struct buffer
+\brief Buffer of data
+*/
 struct buffer{
-	pointer next;
-	unsigned int use;
-	char *data;
+	pointer next; /**< pointer to next buffer */
+	unsigned int use; /**< number of readers reading this buffer */
+	char *data; /**< pointer to the data */
 };
 
-
+/*!
+\struct cab
+\brief CAB Structure (Cyclical Asinchronous Buffers)
+*/
 struct cab{
-	pointer first; //first buffer 
-	pointer free; //free buffer
-	pointer mrb; // most recent buffer
-	unsigned int max_buf; //maximum buffers
-	unsigned int dim_buf; //buffers dimension
+	/*! first buffer */
+	pointer first;
+	/*! free buffer */
+	pointer free; 
+	/*! most recent buffer */
+	pointer mrb; 
+	/*! maximum buffers */
+	unsigned int max_buf; 
+	/*! buffers dimension */
+	unsigned int dim_buf; 
 };
 
 /*! 

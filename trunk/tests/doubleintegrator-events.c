@@ -241,7 +241,7 @@ void tasksend(void *args){
 	while(1){
 		
 
-		LATBbits.LATB10 ^=1;
+		
 
 		Read_State();
 		unsigned long now=srtCurrentTime();
