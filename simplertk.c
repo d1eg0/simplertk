@@ -14,16 +14,16 @@ struct task {
 	// 3=waiting for Sem1, 4=waiting for Sem2, etc.
 };
 
-volatile struct kernel {
+struct kernel {
 	unsigned char nbrOfTasks; // number of tasks created so far
 	unsigned char running;
 	struct task tasks[MAXNBRTASKS+1]; // +1 for the idle task
 	unsigned char semaphores[MAXNBRSEMAPHORES]; // counters for semaphores
 	unsigned int *memptr; // pointer to free memory
-	volatile unsigned long cycles;  // number of major cycles since system start
+	unsigned long cycles;  // number of major cycles since system start
 
-	unsigned long nextHit; // next kernel wake-up time
-} kernel;
+	//unsigned long nextHit; // next kernel wake-up time
+} volatile kernel;
 
 static int current_cpu_ipl;
 
@@ -64,7 +64,6 @@ char scheduler(){
 	unsigned char i;
 	unsigned long now;
 	unsigned long nextHit;
-	long timeleft;
 	
 
 	//add cycle if timer value
@@ -109,17 +108,13 @@ char scheduler(){
 		running=NO_CONTEXT_SWITCH; // no context switch
 	}
 	
-	kernel.nextHit = nextHit;  
-
-
-
-	
 	return running;
 }
 
 void dispatch(void){
 	struct task *t;
 	t = &kernel.tasks[kernel.running];
+	//task switch
 	sptemp=t->sp;
 }
 
@@ -144,7 +139,7 @@ void srtInitKernel(int idlestack){
 	kernel.running = 0;
 	kernel.cycles = 0x00000000;
 
-	kernel.nextHit = 0x7FFFFFFF;
+	//kernel.nextHit = 0x7FFFFFFF;
 	
 	kernel.tasks[0].sp=kernel.memptr;
 	kernel.tasks[0].deadline = 0x7FFFFFFF;
