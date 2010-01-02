@@ -3,23 +3,23 @@
 #include <stdlib.h>
 
 
-buffer **Buffers;
+
 
 cab *srtOpencab(unsigned int num_buffers, unsigned int dim_buffers){
 	cab *c=malloc(sizeof(cab));
-	Buffers=malloc(sizeof(buffer *)*num_buffers);
+	c->buffers=malloc(sizeof(buffer *)*num_buffers);
 	
 	unsigned int i;
 	for(i=0;i<num_buffers;i++){
-		Buffers[i]=malloc(sizeof(buffer));
-		Buffers[i]->data=malloc(dim_buffers);
-		Buffers[i]->use=0;
-		if(i<num_buffers-1) Buffers[i]->next=Buffers[i+1];
-		else Buffers[i]->next=NIL;
+		c->buffers[i]=malloc(sizeof(buffer));
+		c->buffers[i]->data=malloc(dim_buffers);
+		c->buffers[i]->use=0;
+		if(i<num_buffers-1) c->buffers[i]->next=c->buffers[i+1];
+		else c->buffers[i]->next=NIL;
 	}
-	c->first=Buffers[0];
-	c->free=Buffers[0];
-	c->mrb=Buffers[num_buffers-1];
+	c->first=c->buffers[0];
+	c->free=c->buffers[0];
+	c->mrb=c->buffers[num_buffers-1];
 	c->max_buf=num_buffers;
 	
 	return c;	
@@ -29,8 +29,8 @@ void srtDeletecab(cab *c){
 	unsigned int i;
 	// release memory of the cab
 	for(i=0;i<c->max_buf;i++){
-		free(Buffers[i]->data);
-		free(Buffers[i]);
+		free(c->buffers[i]->data);
+		free(c->buffers[i]);
 	}
 	free(c);
 }
