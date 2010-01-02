@@ -26,6 +26,8 @@ struct buffer{
 \brief CAB Structure (Cyclical Asinchronous Buffers)
 */
 struct cab{
+	/*! pointers to buffers */
+	buffer **buffers;
 	/*! first buffer */
 	pointer first;
 	/*! free buffer */
