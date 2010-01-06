@@ -1,4 +1,3 @@
-
 #include "../simplertk.h"
 #include "../uart_dma.h"
 #include "../setup.h"
@@ -15,34 +14,20 @@ static unsigned int last_PortRD5=0;
 
 static float u=0;
 
-
-
-struct data{
-	unsigned int sem;
-	unsigned long d;
-	unsigned long t;
-};
-struct data* d;
-struct data* d1;
 static double x1=0,x1_ant=0,x2=0,x3=0,x3_ant=0,x4=0;
 
-//las mejores k
-static double k1=25,k2=15,k3=32,k4=9;//k1=10,k2=0,k3=22,k4=4; k1=10,k2=0.3,k3=32,k4=9.9;
-//static double k1=59.5448,k2=29.8769,k3=70.8934,k4=-6.6124;
+// ganancias
+static double k1=25,k2=15,k3=32,k4=9;
 
 
-//63.2494   28.1537   59.3897   -9.2252
+
 static const double V_MAX=3.3;	
+
 void TaskPWM(void *args)
 {
-	d=(struct data*)args;
-	
-	d->t = srtGetRelease();
-	d->d = srtGetDeadline();
 
 	while(1){
-		//LATBbits.LATB10 ^=1;
-		//LATBbits.LATB10 ^=1;
+
 		x1=PulseEncoder_pos*STEP;
 		x2=(x1-x1_ant)/0.05;
 		
@@ -58,11 +43,9 @@ void TaskPWM(void *args)
 			if(u<0)LATDbits.LATD8=0; //izquierda
 			if(u>0)LATDbits.LATD8=1; //derecha
 		}else if (PulseEncoder_pos>4500){ 
-			//	//u=-3000;
 			u=V_MAX;
 			LATDbits.LATD8=0;
 		}else if (PulseEncoder_pos<-4500){
-			//	//u=3000;
 			u=V_MAX;
 			LATDbits.LATD8=1;
 		}	
@@ -70,7 +53,7 @@ void TaskPWM(void *args)
 		
 		if(fabs(u)>V_MAX) u=V_MAX;
 		
-		PDC1=fabs(u*5000/V_MAX)+100;//100 bien
+		PDC1=fabs(u*5000/V_MAX)+100;
 		
 		srtSleep(SECONDS2TICKS(0.03), SECONDS2TICKS(0.03));
 	}
@@ -78,19 +61,13 @@ void TaskPWM(void *args)
 
 }
 
-/* Send a character using the UART port
-*/
+
 unsigned char buffer[24];
 void TaskSend(void *args)
 {
 	static unsigned char *p_t;
-	d1=(struct data*)args;
-	
-	d1->t = srtGetRelease();
-	d1->d = srtGetDeadline();
 	
 	while(1){
-	//LATBbits.LATB10 ^=1;
 		unsigned long now=srtCurrentTime();
 		unsigned int posq=POSCNT;
 		buffer[0]=0x05;
@@ -108,11 +85,6 @@ void TaskSend(void *args)
 		p_t=&PulseEncoder_pos;
 		buffer[7]=*p_t;
 		buffer[8]=*(p_t+1);
-
-		
-		//p_t=&vel_QEncoder;
-		//buffer[9]=*p_t;
-		//buffer[10]=*(p_t+1);
 
 		
 		p_t=&u;
@@ -192,67 +164,19 @@ void PulseEncoder_config()
 	
 }
 
-inline void delay(unsigned int us){
-	unsigned int i;
-	for(i=0;i<us;i++){
-		asm volatile("do #15, inner1" );	
-		asm volatile("nop");
-		asm volatile("inner1: nop");
-	}
-}
-
-void taskLoad1(void *args){
-
-	
-	while(1){
-		//asm("bset  LATB,#10");
-		delay(950);
-		//asm("bclr  LATB,#10");
-		srtSleep(SECONDS2TICKS(0.01), SECONDS2TICKS(0.01));
-		
-	}
-}
 
 
-void taskLoad3(void *args){
-
-	
-	while(1){
-		//asm("bset  LATB,#10");
-		//delay(100);
-		//asm("bclr  LATB,#10");
-		asm("nop");
-		delay(100000);
-		srtSleep(SECONDS2TICKS(1), SECONDS2TICKS(1));
-		
-	}
-}
-
-struct data datos,datos1;
 int main(void)
 {
-	PulseEncoder_config();//Importantisima la F-->1111
+	PulseEncoder_config();
 	UART1_DMA_Init();
 	QuadratureEncoder_config();
 	PWM_config();
 	
 	srtInitKernel(80);
-	srtCreateTask(TaskPWM, 100, SECONDS2TICKS(0.03), SECONDS2TICKS(0.03), &datos);
-	srtCreateTask(TaskSend, 100, SECONDS2TICKS(0.01), SECONDS2TICKS(0.02), &datos1);
-	//PDC1=5100;
-	/*srtCreateTask(taskLoad1, 100, SECONDS2TICKS(0.011), SECONDS2TICKS(0.2), 0);
-	srtCreateTask(taskLoad1, 100, SECONDS2TICKS(0.012), SECONDS2TICKS(0.2), 0);
-	srtCreateTask(taskLoad1, 100, SECONDS2TICKS(0.013), SECONDS2TICKS(0.2), 0);
-	srtCreateTask(taskLoad1, 100, SECONDS2TICKS(0.014), SECONDS2TICKS(0.2), 0);
-	srtCreateTask(taskLoad1, 100, SECONDS2TICKS(0.015), SECONDS2TICKS(0.2), 0);
-	srtCreateTask(taskLoad1, 100, SECONDS2TICKS(0.016), SECONDS2TICKS(0.2), 0);
-	srtCreateTask(taskLoad1, 100, SECONDS2TICKS(0.017), SECONDS2TICKS(0.2), 0);
-	srtCreateTask(taskLoad1, 100, SECONDS2TICKS(0.018), SECONDS2TICKS(0.2), 0);
-	srtCreateTask(taskLoad2, 100, SECONDS2TICKS(0.019), SECONDS2TICKS(0.2), 0);
-	srtCreateTask(taskLoad3, 100, SECONDS2TICKS(1), SECONDS2TICKS(1), 0);*/
-	srtCreateTask(taskLoad2, 100, SECONDS2TICKS(0.01), SECONDS2TICKS(0.2), 0);
-	/* Forever loop: background activities (if any) should go here */
+	srtCreateTask(TaskPWM, 100, SECONDS2TICKS(0.03), SECONDS2TICKS(0.03), 0);
+	srtCreateTask(TaskSend, 100, SECONDS2TICKS(0.01), SECONDS2TICKS(0.02), 0);
+
 	for (;;);
-	
-	return 0;
+
 }

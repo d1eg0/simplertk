@@ -10,7 +10,7 @@ struct task {
 	unsigned int *sp;		// Stack pointer
 	unsigned long release;
 	unsigned long deadline;
-	unsigned char state;     // 0=terminated, 1=readyQ, 2=timeQ
+	unsigned char state;     // 0=terminated, 1=READY, 2=SLEEP
 	// 3=waiting for Sem1, 4=waiting for Sem2, etc.
 };
 
@@ -79,18 +79,18 @@ char scheduler(){
 	//Read clock
 	now=kernel.cycles;
 	
-	//Release tasks from TimeQ and determine new running task
+	//Release tasks from SLEEP and determine new running task
 
 	for (i=1; i <= kernel.nbrOfTasks; i++) {
 		t = &kernel.tasks[i];
-		if (t->state == TIMEQ) {
+		if (t->state == SLEEP) {
 			if (t->release <= now) {
-				t->state = READYQ;
+				t->state = READY;
 			} else if (t->release < nextHit) {
 				nextHit = t->release;
 			}
 		}
-		if (t->state == READYQ) {
+		if (t->state == READY) {
 			if (t->deadline < kernel.tasks[running].deadline) {
 				running = i;
 			}
@@ -169,7 +169,6 @@ void srtInitKernel(int idlestack){
 	T1_SOURCE_INT, TIMER_VALUE);
 	
 
-	
 	/* set pin (AN10/RB10)-->(CON6/Pin28) drive state low */
 	LATBbits.LATB10 = 0;
 	/* set pin (AN10/RB10)-->(CON6/Pin28) as output */
@@ -189,7 +188,7 @@ void srtCreateTask(void (*fun)(void*), unsigned int stacksize, unsigned long rel
 	++kernel.nbrOfTasks;
 
 	
-	kernel.memptr -= stacksize;  // decrease free mem ptr
+	kernel.memptr -= (stacksize+23);  // decrease free mem ptr
 	sp = kernel.memptr;
 	
 	
@@ -218,7 +217,7 @@ void srtCreateTask(void (*fun)(void*), unsigned int stacksize, unsigned long rel
 	t->sp=sp;	// store stack pointer
 	t->release = release;
 	t->deadline = deadline;
-	t->state = TIMEQ;
+	t->state = SLEEP;
 
 	EnableInterrupts();
 	_T1Interrupt(); // call interrupt handler to schedule
@@ -278,7 +277,7 @@ void srtSignal(unsigned char semnbr) {
 	if (taskToReadyQ == 0) {
 		kernel.semaphores[semnbr-1]++;
 	} else {
-		kernel.tasks[taskToReadyQ].state = READYQ; // make task ready
+		kernel.tasks[taskToReadyQ].state = READY; // make task ready
 		_T1Interrupt(); // call interrupt handler to schedule
 	}
 
@@ -299,7 +298,7 @@ void srtSleep(unsigned long release, unsigned long deadline) {
 
 	DisableInterrupts(); // turn off interrupts
 
-	t->state = TIMEQ;
+	t->state = SLEEP;
 	
 	temp_res=t->deadline+deadline; //worst overflow case test
 	if(SR&0x0004)restartCycle(); //status register overflow bit -> restart life counters

@@ -2,12 +2,12 @@
 #include "../uart_dma.h"
 #include <math.h>
 
-/*	Constants	*/
+
 static float v_max=3.33;  //dsPIC voltage reference
 static float Nu =0;
 static float Nx[2] ={1.0,0};
 
-/*	Variables	*/
+
 static float read_adc1=0;
 static float read_adc2=0;
 
@@ -22,19 +22,10 @@ static float u_ss=0;
 
 
 /* Controller gains, u=-k*x */
-static float k[2]={1.6158,-0.3360};//{0.5029,-0.9519};
+static float k[2]={1.6158,-0.3360};
 
-
+// buffer to send information RS232
 unsigned char buffer[23];
-struct data{
-	unsigned int sem;
-	unsigned long d;
-	unsigned long t;
-};
-struct data* d;
-struct data* d2;
-struct data* d3;
-struct data* d4;
 
 
 /*	Variables needed to implement the first order aproximation */
@@ -170,32 +161,23 @@ void Read_State(void)
 }
 
 void taskreference(void *args){
-	d2=(struct data*)args;
-	
-	d2->t = srtGetRelease();
-	d2->d = srtGetDeadline();
+
 	while(1){
 
 		if (reference == -0.5)
 		{
 			reference=0.5;
-			LATBbits.LATB14 = 1;//Orange led switch on
 		}else{
 			reference=-0.5;
-			LATBbits.LATB14 = 0;//Orange led switch off
 		}
 		
-
 		srtSleep(SECONDS2TICKS(1), SECONDS2TICKS(1));
 	}	
 }
 
 void taskcontroller(void *args){
-	d3=(struct data*)args;
-	
-	float a=0.0;
-	while(1){
 
+	while(1){
 		r=reference;
 
 		Read_State();
@@ -212,17 +194,15 @@ void taskcontroller(void *args){
 
 		PDC1= u*0x7FFF/v_max+16600;//Scale to PWM frequency
 
-		
+		// compute next activation
 		double next_event=Calculate_Next_Activation_Time();
-		srtWait(1);
 		event_time=next_event*1000;
-		srtSignal(1);
-		
 		unsigned long next_ticks=SECONDS2TICKS((float)(round2nearest(next_event)/1000.0));
-		srtSleep( next_ticks,next_ticks);		
 		
+		srtSleep( next_ticks,next_ticks);				
 	}	
 }
+
 
 void tasksend(void *args){
 
@@ -234,15 +214,7 @@ void tasksend(void *args){
 	static unsigned char *p_e=&event_time;
 
 	
-	d=(struct data*)args;
-	
-	d->t = srtGetRelease();
-	d->d = srtGetDeadline();
 	while(1){
-		
-
-		
-
 		Read_State();
 		unsigned long now=srtCurrentTime();
 		p_t=&now;
@@ -272,29 +244,20 @@ void tasksend(void *args){
 		buffer[18]=*(p_t+1);
 		buffer[19]=*(p_t+2);
 		buffer[20]=*(p_t+3);
-		srtWait(1);
 		buffer[21]=*p_e;
 		buffer[22]=*(p_e+1);
-		srtSignal(1);
 		buffer[23]=3;
 		buffer[24]=4;
 
 		
 		Send(&buffer);
-		//Force sending data
-		//DMA4CONbits.CHEN  = 1;            // Re-enable DMA4 Channel
-		//DMA4REQbits.FORCE = 1;            // Manual mode: Kick-start the first transfer
 
-		
-		//LATBbits.LATB14 = 1;
-		//d->t+= SECONDS2TICKS(0.01);
-		//d->d+= SECONDS2TICKS(0.01);
 		srtSleep(SECONDS2TICKS(0.01), SECONDS2TICKS(0.01));
 	}	
 }
 
 
-struct data datos,datos2,datos3;
+
 int main(void)
 {
 	PWM_config();
@@ -302,44 +265,13 @@ int main(void)
 	ADC1_init();	
 	ADC2_init();
 
-
-	
-	datos.sem=0;
-	datos2.sem=0;
-	datos3.sem=0;
-
-
-	//pruebaargs(&datos);
-	
-	/* set LEDs drive state low */
-	//LATF  &= 0xFFF0;
-	LATD  &= 0xF0FF;
-
-	/* set LEDs pin as output */
-	//TRISF &= 0xFFF0;
-	TRISD &= 0xF0FF; 
-	
-	
-	// Led naranja
-	LATBbits.LATB14 = 0;
-	TRISBbits.TRISB14=0;
-	LATBbits.LATB14 = 0;
-	
-	TRISDbits.TRISD1 = 0;
-	
-	
 	srtInitKernel(100);
-	//ADC2_init();
-	srtCreateSemaphore(1, 1);
 	
-	srtCreateTask(taskreference, 100, SECONDS2TICKS(1), SECONDS2TICKS(1), &datos);
-	srtCreateTask(taskcontroller, 100, SECONDS2TICKS(0.010), SECONDS2TICKS(0.010), &datos2);
-	srtCreateTask(tasksend, 800, SECONDS2TICKS(0.01), SECONDS2TICKS(0.01), &datos3);
+	srtCreateTask(taskreference, 100, SECONDS2TICKS(1), SECONDS2TICKS(1), 0);
+	srtCreateTask(taskcontroller, 100, SECONDS2TICKS(0.010), SECONDS2TICKS(0.010), 0);
+	srtCreateTask(tasksend, 800, SECONDS2TICKS(0.01), SECONDS2TICKS(0.01), 0);
 	
 
 	while(1);
 
-	
-	CloseTimer1();
-	CloseTimer2();
 }
