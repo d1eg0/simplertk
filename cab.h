@@ -26,18 +26,11 @@ struct buffer{
 \brief CAB Structure (Cyclical Asinchronous Buffers)
 */
 struct cab{
-	/*! pointers to buffers */
-	buffer **buffers;
-	/*! first buffer */
-	pointer first;
-	/*! free buffer */
-	pointer free; 
-	/*! most recent buffer */
-	pointer mrb; 
-	/*! maximum buffers */
-	unsigned int max_buf; 
-	/*! buffers dimension */
-	unsigned int dim_buf; 
+	buffer **buffers; /**< pointers to buffers */
+	pointer free; /**< free buffer */
+	pointer mrb; /**< most recent buffer */
+	unsigned int max_buf; /**< maximum buffers */
+	unsigned int dim_buf; /**< buffers dimension */
 };
 
 /*! 

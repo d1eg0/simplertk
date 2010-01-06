@@ -17,7 +17,7 @@ cab *srtOpencab(unsigned int num_buffers, unsigned int dim_buffers){
 		if(i<num_buffers-1) c->buffers[i]->next=c->buffers[i+1];
 		else c->buffers[i]->next=NIL;
 	}
-	c->first=c->buffers[0];
+	
 	c->free=c->buffers[0];
 	c->mrb=c->buffers[num_buffers-1];
 	c->max_buf=num_buffers;

@@ -27,8 +27,13 @@ void taskWriter(void *args){
 	}
 }
 
+typedef struct prueba{
+unsigned char hola;
+unsigned char adios[2];
+}pruebax;
 
 int main(void){
+
 /* set LEDs drive state low */
     LATF  &= 0xFFF0;
     LATD  &= 0xF0FF;
