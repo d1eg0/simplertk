@@ -1,3 +1,22 @@
+/*
+	SimpleRTK: a real time kernel for dspic
+    Copyright (C) 2009  Diego García
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>
+    
+    mail: kobydiego@gmail.com
+*/
 /*! \file simplertk.h
     \brief This file includes the Simple Real Time Kernel functions declarations.
 */
@@ -10,12 +29,12 @@
 
 
 /*!
- \def MAXNBRTASKS 
-Max number of tasks
+ \def MAXNBRTASKS
+Max number of tasks to be created
  */
 #define MAXNBRTASKS 0
 /*!
- \def MAXNBRSEMAPHORES 
+ \def MAXNBRSEMAPHORES
 Max number of semaphores
  */
 #define MAXNBRSEMAPHORES 0
@@ -51,7 +70,7 @@ struct task;
 
 struct kernel;
 
-// Disable all interrupts 
+// Disable all interrupts
 void DisableInterrupts();
 // Enable all interrupts
 void EnableInterrupts();
@@ -63,14 +82,14 @@ void EnableInterrupts();
 
 
 /***************** API *****************/
-/*! 
-\brief Initialize the kernel 
+/*!
+\brief Initialize the kernel
 \param idlestack size of the idle stack
 */
 void srtInitKernel(int idlestack);
 	
 
-/*! 
+/*!
 \brief Create a task
 \param fun task source code adress
 \param stacksize task stack size for local variables (in words, word = 2 bytes)
@@ -80,21 +99,21 @@ void srtInitKernel(int idlestack);
 */
 void srtCreateTask(void (*fun)(void*), unsigned int stacksize, unsigned long release, unsigned long deadline, void* args);
 
-/*! 
+/*!
 \brief Create a semaphore
 \param semnbr semaphore identifier
 \param initVal initial value
 */
 void srtCreateSemaphore(unsigned char semnbr, unsigned char initVal);
 
-/*! 
+/*!
 \brief Wait on a semaphore
 \param semnbr semaphore identifier
 */
 void srtWait(unsigned char semnbr);
 
 
-/*! 
+/*!
 \brief Signal a semaphore
 \param semnbr semaphore identifier
 */
@@ -103,7 +122,7 @@ void srtSignal(unsigned char semnbr);
 /** Get the current system time (ticks) */
 unsigned long srtCurrentTime(void);
 
-/*! 
+/*!
 \brief Put a task to sleep until a certain time
 \param release the release time of the task
 \param deadline the deadline time of the task

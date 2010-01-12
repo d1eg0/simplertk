@@ -6,9 +6,9 @@
  ******************************************************************************/
 /*void ADC1_init(void)
 {
-   // (CON6-Pin33)-(AN13-RB13) Pin as input 
-   LATBbits.LATB13 = 0;         // set LED (AN13/RB13) drive state low 
-   TRISBbits.TRISB13 = 1;       // set LED pin (AN13/RB13) as input 
+   // (CON6-Pin33)-(AN13-RB13) Pin as input
+   LATBbits.LATB13 = 0;         // set LED (AN13/RB13) drive state low
+   TRISBbits.TRISB13 = 1;       // set LED pin (AN13/RB13) as input
 
    //ADC Configuration
    AD1PCFGL = 0xFFFF;           //ADC1 Port Configuration Register Low
@@ -90,8 +90,8 @@ void ADC1_init(void)
  ******************************************************************************************/
 /*void ADC2_init(void)
 {
-   LATBbits.LATB12 = 0;         // set LED (AN12/RB12) drive state low 
-   TRISBbits.TRISB12 = 1;       // set LED pin (AN12/RB12) as input 
+   LATBbits.LATB12 = 0;         // set LED (AN12/RB12) drive state low
+   TRISBbits.TRISB12 = 1;       // set LED pin (AN12/RB12) as input
 
    //ADC Configuration
    AD2PCFGL = 0xFFFF; //ADC2 Port Configuration Register Low
@@ -164,8 +164,8 @@ void ADC2_init(void)
  ******************************************************************************/
 /*void PWM_config(void)
 {
-	LATDbits.LATD8=0; //Estas dos lineas configuran una salida digital 
-	TRISDbits.TRISD8=0;//del puerto D numero 8, pin7 del CON5 
+	LATDbits.LATD8=0; //Estas dos lineas configuran una salida digital
+	TRISDbits.TRISD8=0;//del puerto D numero 8, pin7 del CON5
 
 	TRISE = 0x0000;		// Puerto E como salida.
 
@@ -177,7 +177,7 @@ void ADC2_init(void)
 	//150uS=0x0bff
 	//25uS=0x01ff
 	//14uS(aprox)=0x00ff
-	PWMCON1 = 0x0111;		// Habilita salida 1 del PWM y modo independiente 
+	PWMCON1 = 0x0111;		// Habilita salida 1 del PWM y modo independiente
 	PWMCON2bits.IUE = 0;	// Immediate update period enable
 	PWMCON2bits.UDIS = 0;	// Actualizaciones de ciclo trabajo y periodo habilitadas
 

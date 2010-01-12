@@ -3,7 +3,7 @@
 //********************************************************************************
 //  Allocate two buffers for DMA transfers
 //********************************************************************************/
-/** Output Buffer */ 
+/** Output Buffer */
 char BufferOutput[OUTPUT_DATA_SIZE] __attribute__((space(dma)));
 char BufferInput[INPUT_DATA_SIZE] __attribute__((space(dma)));
 

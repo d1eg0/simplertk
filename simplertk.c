@@ -1,3 +1,22 @@
+/*
+	SimpleRTK: a real time kernel for dspic
+    Copyright (C) 2009  Diego García
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>
+    
+    mail: kobydiego@gmail.com
+*/
 #include "simplertk.h"
 
 _FOSCSEL(FNOSC_PRIPLL);// Primary (XT, HS, EC) Oscillator with PLL
@@ -29,13 +48,13 @@ static int current_cpu_ipl;
 
 
 void EnableInterrupts(){
-	RESTORE_CPU_IPL(current_cpu_ipl); 
-	__asm__ volatile("disi #0x0000"); /* enable interrupts */ 
+	RESTORE_CPU_IPL(current_cpu_ipl);
+	__asm__ volatile("disi #0x0000"); /* enable interrupts */
 }
 
 void DisableInterrupts(){
-	SET_AND_SAVE_CPU_IPL(current_cpu_ipl, 7);  /* disable level 7 interrupts */ 
-	__asm__ volatile("disi #0x3FFF"); /* disable interrupts */ 
+	SET_AND_SAVE_CPU_IPL(current_cpu_ipl, 7);  /* disable level 7 interrupts */
+	__asm__ volatile("disi #0x3FFF"); /* disable interrupts */
 }
 
 
@@ -44,7 +63,7 @@ static void restartCycle(void){
 	unsigned char i;
 	
 	DisableInterrupts(); // turn off interrupts
-	//tasks time shift 
+	//tasks time shift
 	for (i=1; i <= kernel.nbrOfTasks; i++) {
 		if (kernel.tasks[i].state!=TERMINATED){
 			kernel.tasks[i].release-=kernel.cycles;
@@ -125,7 +144,7 @@ void dispatch(void){
 
 
 void srtInitKernel(int idlestack){
-	// Clock setup for 40MIPS 
+	// Clock setup for 40MIPS
 	CLKDIVbits.DOZEN   = 0;
 	CLKDIVbits.PLLPRE  = 0;
 	CLKDIVbits.PLLPOST = 0;
